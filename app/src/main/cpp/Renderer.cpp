@@ -81,6 +81,14 @@ void Renderer::stop() {
 void Renderer::setWindow(ANativeWindow *window) {
     // notify render thread that window has changed
     pthread_mutex_lock(&_mutex);
+    if (_window) {
+        LOG_INFO("Window already set");
+        if (window == _window) {
+            pthread_mutex_unlock(&_mutex);
+            return;
+        }
+        destroy();
+    }
     _msg = MSG_WINDOW_SET;
     _window = window;
     pthread_mutex_unlock(&_mutex);
@@ -91,13 +99,12 @@ void Renderer::renderLoop() {
     bool renderingEnabled = true;
 
     LOG_DEBUG("renderLoop()");
+    unsigned long frames = 0L;
 
     while (renderingEnabled) {
         pthread_mutex_lock(&_mutex);
-
         // process incoming messages
         switch (_msg) {
-
             case MSG_WINDOW_SET:
                 initialize();
                 break;
@@ -111,18 +118,18 @@ void Renderer::renderLoop() {
                 break;
         }
         _msg = MSG_NONE;
+        pthread_mutex_unlock(&_mutex);
 
         if (_display) {
+            ++frames;
             drawFrame();
             if (!eglSwapBuffers(_display, _surface)) {
                 LOG_ERROR("eglSwapBuffers() returned error %d", eglGetError());
             }
         }
-
-        pthread_mutex_unlock(&_mutex);
     }
 
-    LOG_DEBUG("Render loop exits");
+    LOG_DEBUG("Render loop exits after %zu frames", frames);
 }
 
 bool Renderer::initialize() {
