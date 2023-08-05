@@ -13,6 +13,12 @@ project("vrvideoplayer")
 
 #set(ANDROID_NDK_INCLUDES "" CACHE STRING "Path to Android NDK header files")
 
+# Standard Android dependencies
+find_library(android-lib android)
+find_library(GLESv2-lib GLESv2)
+find_library(GLESv3-lib GLESv3)
+find_library(log-lib log)
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -27,22 +33,21 @@ project("vrvideoplayer")
 # for GameActivity/NativeActivity derived applications, the same library name must be
 # used in the AndroidManifest.xml file.
 add_library(${CMAKE_PROJECT_NAME} SHARED
-    # List C/C++ source files with relative paths to this CMakeLists.txt.
-    native-lib.cpp
-    Renderer.cpp
-    GLUtils.cpp
-)
+        # List C/C++ source files with relative paths to this CMakeLists.txt.
+        native-lib.cpp
+        Renderer.cpp
+        GLUtils.cpp
+        )
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
 target_link_libraries(${CMAKE_PROJECT_NAME}
-    # List libraries link to the target library
-    android
-    log
-    EGL
-    GLESv1_CM
-)
+        ${android-lib}
+        ${GLESv2-lib}
+        ${GLESv3-lib}
+        ${log-lib}
+        )
 
 #
 #target_include_directories(${CMAKE_PROJECT_NAME}

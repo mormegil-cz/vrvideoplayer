@@ -8,6 +8,8 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 
+#include "glm/mat4x4.hpp"
+
 class Renderer {
 
 public:
@@ -31,18 +33,21 @@ private:
     int screen_width;
     int screen_height;
 
+    bool glInitialized;
+
     GLfloat angle;
     GLuint obj_program;
     GLint obj_position_param;
     GLint obj_uv_param;
     GLint obj_color_param;
+    GLuint depthRenderBuffer;
+
     GLint obj_modelview_projection_param;
 
     bool UpdateDeviceParams();
-
     void GlSetup();
-
     void GlTeardown();
+    glm::mat4 BuildMVPMatrix();
 };
 
 #endif //VRVIDEOPLAYER_RENDERER_H

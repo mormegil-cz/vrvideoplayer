@@ -8,13 +8,21 @@
 
 #include <GLES2/gl2.h>
 
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
+#include "glm/mat4x4.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/scalar_constants.hpp"
+#include "glm/gtc/type_ptr.hpp"
+
 #include "Renderer.h"
 #include "GLUtils.h"
 #include "logger.h"
 
 #define LOG_TAG "VrVideoPlayerR"
 
-static GLint vertices[][3] = {
+static GLfloat objVertices[][3] = {
         {-0x10000, -0x10000, -0x10000},
         {0x10000,  -0x10000, -0x10000},
         {0x10000,  0x10000,  -0x10000},
@@ -25,7 +33,18 @@ static GLint vertices[][3] = {
         {-0x10000, 0x10000,  0x10000}
 };
 
-static GLint colors[][4] = {
+static GLfloat objUV[][2] = {
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f},
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f}
+};
+
+static GLint objColors[][4] = {
         {0x00000, 0x00000, 0x00000, 0x10000},
         {0x10000, 0x00000, 0x00000, 0x10000},
         {0x10000, 0x10000, 0x00000, 0x10000},
@@ -36,7 +55,7 @@ static GLint colors[][4] = {
         {0x00000, 0x10000, 0x10000, 0x10000}
 };
 
-static GLubyte indices[] = {
+static GLubyte objIndices[] = {
         0, 4, 5, 0, 5, 1,
         1, 5, 6, 1, 6, 2,
         2, 6, 7, 2, 7, 3,
@@ -51,7 +70,8 @@ constexpr const char *kVertexShader =
     #version 300 es
 
     uniform mat4 u_MVP;
-    in vec4 a_Position, a_Color;
+    in vec3 a_Position;
+    in vec4 a_Color;
     in vec2 a_UV;
     out vec2 v_UV;
     out vec4 v_Color;
@@ -90,26 +110,6 @@ Renderer::Renderer(JavaVM *vm, jobject obj, jobject asset_mgr_obj, jobject java_
 
 Renderer::~Renderer() {
     LOG_DEBUG("Renderer instance destroyed");
-}
-
-void Renderer::drawFrame() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0, 0, -3.0f);
-    glRotatef(angle, 0, 1, 0);
-    glRotatef(angle * 0.25f, 1, 0, 0);
-
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
-    glFrontFace(GL_CW);
-    glVertexPointer(3, GL_FIXED, 0, vertices);
-    glColorPointer(4, GL_FIXED, 0, colors);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, indices);
-
-    angle += 1.2f;
 }
 
 void Renderer::OnPause() {
@@ -160,13 +160,29 @@ void Renderer::DrawFrame() {
 
     glViewport(0, 0, screen_width, screen_height);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    glUseProgram(obj_program);
-    glVertexAttribPointer(obj_position_param, 2, GL_FLOAT, GL_FALSE, 0, triangleVertices);
-    glEnableVertexAttribArray(vPosition);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_SCISSOR_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glUseProgram(obj_program);
+
+    auto mvpMatrix = BuildMVPMatrix();
+    glUniformMatrix4fv(obj_modelview_projection_param, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+
+    glEnableVertexAttribArray(obj_position_param);
+    glVertexAttribPointer(obj_position_param, 3, GL_FLOAT, false, 0, objVertices);
+    glEnableVertexAttribArray(obj_uv_param);
+    glVertexAttribPointer(obj_uv_param, 2, GL_FLOAT, false, 0, objUV);
+    glEnableVertexAttribArray(obj_color_param);
+    glVertexAttribPointer(obj_color_param, 4, GL_FLOAT, false, 0, objColors);
+
+    glDrawElements(GL_TRIANGLES, (sizeof objIndices) / (sizeof objIndices[0]), GL_UNSIGNED_SHORT,
+                   objIndices);
+
+    angle += 1.2f;
 }
 
 bool Renderer::UpdateDeviceParams() {
@@ -188,11 +204,10 @@ bool Renderer::UpdateDeviceParams() {
 void Renderer::GlSetup() {
     LOG_DEBUG("GLSetup");
 
-    /*
-    if (framebuffer != 0) {
+    if (glInitialized) {
         GlTeardown();
     }
-    */
+    glInitialized = true;
 
     /*
     // Create render texture.
@@ -206,13 +221,11 @@ void Renderer::GlSetup() {
 
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
-    /*
     // Generate depth buffer to perform depth test.
     glGenRenderbuffers(1, &depthRenderBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screen_width, screen_height);
     CHECK_GL_ERROR("Create Render buffer");
-    */
 
     /*
     // Create render target.
@@ -227,12 +240,14 @@ void Renderer::GlSetup() {
 }
 
 void Renderer::GlTeardown() {
-    /*
-    if (framebuffer == 0) {
+    if (!glInitialized) {
         return;
     }
+    glInitialized = false;
+
     glDeleteRenderbuffers(1, &depthRenderBuffer);
     depthRenderBuffer = 0;
+    /*
     glDeleteFramebuffers(1, &framebuffer);
     framebuffer = 0;
     glDeleteTextures(1, &texture);
@@ -240,4 +255,13 @@ void Renderer::GlTeardown() {
     */
 
     CHECK_GL_ERROR("GlTeardown");
+}
+
+glm::mat4 Renderer::BuildMVPMatrix() {
+    auto aspect = (float) screen_width / (float) screen_height;
+    glm::mat4 projection = glm::perspective(glm::pi<float>() * 0.25f, aspect, 1.f, 100.f);
+    glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+    view = glm::rotate(view, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::rotate(view, angle * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
+    return projection * view;
 }
