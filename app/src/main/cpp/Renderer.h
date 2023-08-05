@@ -5,54 +5,44 @@
 #include <EGL/egl.h>
 #include <GLES/gl.h>
 
-#include <android/native_window.h>
-#include <android/native_window_jni.h>
-
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 
 class Renderer {
 
 public:
-    Renderer();
+    Renderer(JavaVM* vm, jobject obj, jobject asset_mgr_obj, jobject java_app_obj);
     virtual ~Renderer();
 
-    // Following methods can be called from any thread.
-    // They send message to render thread which executes required actions.
-    void start();
-    void stop();
-    void setWindow(ANativeWindow* window);
+    void OnSurfaceCreated(JNIEnv* env);
+    void SetScreenParams(int width, int height);
+    void DrawFrame();
+    void OnPause();
+    void OnResume();
 
 private:
 
-    enum RenderThreadMessage {
-        MSG_NONE = 0,
-        MSG_WINDOW_SET,
-        MSG_RENDER_LOOP_EXIT
-    };
+    jobject java_asset_mgr;
+    jobject java_app_obj;
+    AAssetManager* asset_mgr;
 
-    pthread_t _threadId;
-    pthread_mutex_t _mutex;
-    enum RenderThreadMessage _msg;
+    bool screen_params_changed;
+    bool device_params_changed;
+    int screen_width;
+    int screen_height;
 
-    // android window, supported by NDK r5 and newer
-    ANativeWindow* _window;
+    GLfloat angle;
+    GLuint obj_program;
+    GLint obj_position_param;
+    GLint obj_uv_param;
+    GLint obj_color_param;
+    GLint obj_modelview_projection_param;
 
-    EGLDisplay _display;
-    EGLSurface _surface;
-    EGLContext _context;
-    GLfloat _angle;
+    bool UpdateDeviceParams();
 
-    // RenderLoop is called in a rendering thread started in start() method
-    // It creates rendering context and renders scene until stop() is called
-    void renderLoop();
+    void GlSetup();
 
-    bool initialize();
-    void destroy();
-
-    void drawFrame();
-
-    // Helper method for starting the thread
-    static void* threadStartCallback(void *myself);
-
+    void GlTeardown();
 };
 
 #endif //VRVIDEOPLAYER_RENDERER_H

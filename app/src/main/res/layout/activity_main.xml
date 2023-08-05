@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <SurfaceView
+    <android.opengl.GLSurfaceView
         android:id="@+id/surfaceview"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
