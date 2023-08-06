@@ -163,7 +163,7 @@ static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (!InitVideoTexture(env, javaVideoTexturePlayer, textureId, path)) {
+    if (!InitVideoTexturePlayback(env, javaVideoTexturePlayer, textureId, path)) {
         LOG_ERROR("Couldn't initialize video texture");
         return;
     }
