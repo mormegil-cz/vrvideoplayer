@@ -12,11 +12,12 @@ import javax.microedition.khronos.opengles.GL10
 
 class MainActivity : AppCompatActivity() {
     companion object {
-        const val TAG = "VRVideoPlayer"
+        private const val TAG = "VRVideoPlayer"
     }
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var glView: GLSurfaceView
+    private lateinit var videoTexturePlayer: VideoTexturePlayer
 
     // Opaque native pointer to the native CardboardApp instance.
     // This object is owned by this instance and passed to the native methods.
@@ -36,7 +37,9 @@ class MainActivity : AppCompatActivity() {
         glView.setRenderer(renderer)
         glView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
 
-        nativeApp = NativeLibrary.nativeInit(assets)
+        videoTexturePlayer = VideoTexturePlayer(assets)
+
+        nativeApp = NativeLibrary.nativeInit(assets, videoTexturePlayer)
 
         glView.setOnClickListener {
             val toast = Toast.makeText(
@@ -53,11 +56,13 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "onResume()")
         glView.onResume()
         NativeLibrary.nativeOnResume(nativeApp)
+        videoTexturePlayer.onResume()
     }
 
     override fun onPause() {
         super.onPause()
         Log.d(TAG, "onPause()")
+        videoTexturePlayer.onPause()
         NativeLibrary.nativeOnPause(nativeApp)
         glView.onPause()
     }
@@ -67,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "onDestroy()")
         NativeLibrary.nativeOnDestroy(nativeApp)
         nativeApp = 0
+        videoTexturePlayer.onDestroy()
     }
 
     private inner class Renderer : GLSurfaceView.Renderer {

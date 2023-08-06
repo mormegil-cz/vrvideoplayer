@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -90,25 +91,22 @@ void main() {
   fragColor = texture(u_Texture, v_UV) * v_Color;
 })glsl";
 
-Renderer::Renderer(JavaVM *vm, jobject obj, jobject asset_mgr_obj, jobject java_app_obj)
-        : java_app_obj(java_app_obj),
-          java_asset_mgr(asset_mgr_obj),
-          glInitialized(false),
+Renderer::Renderer(JavaVM *vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj)
+        : glInitialized(false),
           angle(0),
           frameCount(0) {
     LOG_DEBUG("Renderer instance created");
 
     JNIEnv *env;
     vm->GetEnv((void **) &env, JNI_VERSION_1_6);
-    java_asset_mgr = env->NewGlobalRef(asset_mgr_obj);
-    this->java_app_obj = env->NewGlobalRef(java_app_obj);
-    this->asset_mgr = AAssetManager_fromJava(env, asset_mgr_obj);
+    javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
+    javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
 }
 
 Renderer::~Renderer() {
     LOG_DEBUG("Renderer instance destroyed");
 
-    // TODO: deallocate java_asset_mgr, java_app_obj, and asset_mgr?
+    // TODO: deallocate javaAssetMgr, javaVideoTexturePlayer?
 }
 
 void Renderer::OnPause() {
@@ -121,15 +119,58 @@ void Renderer::OnResume() {
     frameCount = 0;
 
     // Parameters may have changed.
-    device_params_changed = true;
+    deviceParamsChanged = true;
 }
 
 void Renderer::SetScreenParams(int width, int height) {
     LOG_DEBUG("SetScreenParams(%d, %d)", width, height);
 
-    screen_width = width;
-    screen_height = height;
-    screen_params_changed = true;
+    screenWidth = width;
+    screenHeight = height;
+    screenParamsChanged = true;
+}
+
+static void initTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const std::string &path) {
+    glGenTextures(1, &textureId);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (!LoadPngFromAssetManager(env, java_asset_mgr, GL_TEXTURE_2D, path)) {
+        LOG_ERROR("Couldn't load texture");
+        return;
+    }
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    CHECK_GL_ERROR("Texture load");
+}
+
+static void bindTexture(GLuint textureId) {
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+}
+
+static void initVideoTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const std::string &path) {
+    glGenTextures(1, &textureId);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (!InitVideoTexture(env, vrapp, GL_TEXTURE_EXTERNAL_OES, path)) {
+        LOG_ERROR("Couldn't initialize video texture");
+        return;
+    }
+    CHECK_GL_ERROR("Video texture init");
+}
+
+static void bindVideoTexture(GLuint textureId) {
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
 }
 
 void Renderer::OnSurfaceCreated(JNIEnv *env) {
@@ -143,29 +184,15 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     glAttachShader(obj_program, obj_fragment_shader);
     glLinkProgram(obj_program);
     glUseProgram(obj_program);
-
     CHECK_GL_ERROR("Obj program");
 
     obj_position_param = glGetAttribLocation(obj_program, "a_Position");
     obj_uv_param = glGetAttribLocation(obj_program, "a_UV");
     obj_color_param = glGetAttribLocation(obj_program, "a_Color");
     obj_modelview_projection_param = glGetUniformLocation(obj_program, "u_MVP");
-
     CHECK_GL_ERROR("Obj program params");
 
-    glGenTextures(1, &cubeTexture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cubeTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (!LoadPngFromAssetManager(env, java_asset_mgr, GL_TEXTURE_2D, "test-image-square.png")) {
-        LOG_ERROR("Couldn't load cube texture");
-    }
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    CHECK_GL_ERROR("Texture load");
+    initTexture(env, javaAssetMgr, cubeTexture, "test-image-square.png");
 }
 
 void Renderer::DrawFrame() {
@@ -173,7 +200,7 @@ void Renderer::DrawFrame() {
         return;
     }
 
-    glViewport(0, 0, screen_width, screen_height);
+    glViewport(0, 0, screenWidth, screenHeight);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -183,8 +210,7 @@ void Renderer::DrawFrame() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cubeTexture);
+    bindTexture(cubeTexture)
 
     glUseProgram(obj_program);
 
@@ -207,14 +233,14 @@ void Renderer::DrawFrame() {
 
 bool Renderer::UpdateDeviceParams() {
     // Checks if screen or device parameters changed
-    if (!screen_params_changed && !device_params_changed) {
+    if (!screenParamsChanged && !deviceParamsChanged) {
         return true;
     }
 
     GlSetup();
 
-    screen_params_changed = false;
-    device_params_changed = false;
+    screenParamsChanged = false;
+    deviceParamsChanged = false;
 
     CHECK_GL_ERROR("UpdateDeviceParams");
 
@@ -239,12 +265,12 @@ void Renderer::GlSetup() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     */
 
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
     // Generate depth buffer to perform depth test.
     glGenRenderbuffers(1, &depthRenderBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screen_width, screen_height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screenWidth, screenHeight);
     CHECK_GL_ERROR("Create Render buffer");
 
     /*
@@ -278,7 +304,7 @@ void Renderer::GlTeardown() {
 }
 
 glm::mat4 Renderer::BuildMVPMatrix() {
-    auto aspect = (float) screen_width / (float) screen_height;
+    auto aspect = (float) screenWidth / (float) screenHeight;
     glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 1.0f, 10.0f);
 
     glm::mat4 view = glm::lookAt(

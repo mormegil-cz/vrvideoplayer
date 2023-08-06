@@ -13,7 +13,7 @@
 class Renderer {
 
 public:
-    Renderer(JavaVM* vm, jobject obj, jobject asset_mgr_obj, jobject java_app_obj);
+    Renderer(JavaVM* vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj);
     virtual ~Renderer();
 
     void OnSurfaceCreated(JNIEnv* env);
@@ -23,15 +23,13 @@ public:
     void OnResume();
 
 private:
+    jobject javaAssetMgr;
+    jobject javaVideoTexturePlayer;
 
-    jobject java_asset_mgr;
-    jobject java_app_obj;
-    AAssetManager* asset_mgr;
-
-    bool screen_params_changed;
-    bool device_params_changed;
-    int screen_width;
-    int screen_height;
+    bool screenParamsChanged;
+    bool deviceParamsChanged;
+    int screenWidth;
+    int screenHeight;
 
     bool glInitialized;
 

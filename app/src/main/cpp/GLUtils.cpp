@@ -18,7 +18,9 @@
 class RunAtEndOfScope {
 public:
     RunAtEndOfScope(std::function<void()> function) : function(std::move(function)) {}
+
     ~RunAtEndOfScope() { function(); }
+
 private:
     std::function<void()> function;
 };
@@ -62,8 +64,8 @@ void CheckGlError(const char *file, int line, const char *label) {
     }
 }
 
-bool LoadPngFromAssetManager(JNIEnv* env, jobject java_asset_mgr, int target,
-                             const std::string& path) {
+bool LoadPngFromAssetManager(JNIEnv *env, jobject java_asset_mgr, int target,
+                             const std::string &path) {
     jclass bitmap_factory_class =
             env->FindClass("android/graphics/BitmapFactory");
     jclass asset_manager_class =
@@ -96,5 +98,28 @@ bool LoadPngFromAssetManager(JNIEnv* env, jobject java_asset_mgr, int target,
 
     env->CallStaticVoidMethod(gl_utils_class, tex_image_2d_method, target, 0,
                               image_obj, 0);
+    return true;
+}
+
+bool InitVideoTexture(JNIEnv *env, jobject vrapp, int target, const std::string &path) {
+    jclass vrapp_class = env->FindClass("cz/mormegil/vrvideoplayer/VideoTexturePlayer");
+    jmethodID prepare_video_player_method = env->GetMethodID(vrapp_class, "prepareVideoPlayer",
+                                                             "(ILjava/lang/String;)V");
+
+    jstring j_path = env->NewStringUTF(path.c_str());
+    RunAtEndOfScope cleanup_j_path([&] {
+        if (j_path) {
+            env->DeleteLocalRef(j_path);
+        }
+    });
+
+    env->CallVoidMethod(vrapp, prepare_video_player_method, target, j_path);
+
+    if (env->ExceptionOccurred() != nullptr) {
+        LOG_ERROR("Java exception while preparing video texture");
+        env->ExceptionClear();
+        return false;
+    }
+
     return true;
 }
