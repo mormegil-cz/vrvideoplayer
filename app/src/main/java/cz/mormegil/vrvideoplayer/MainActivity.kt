@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
 
         videoTexturePlayer = VideoTexturePlayer(assets, "video-texture.webm")
 
-        nativeApp = NativeLibrary.nativeInit(assets, videoTexturePlayer)
+        nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
 
         glView.setOnClickListener {
             val toast = Toast.makeText(

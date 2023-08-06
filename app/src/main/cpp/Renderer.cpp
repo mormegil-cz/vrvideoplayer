@@ -93,7 +93,7 @@ void main() {
   fragColor = texture(u_Texture, v_UV) * v_Color;
 })glsl";
 
-Renderer::Renderer(JavaVM *vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj)
+Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj)
         : glInitialized(false),
           angle(0),
           frameCount(0) {
@@ -101,6 +101,7 @@ Renderer::Renderer(JavaVM *vm, jobject obj, jobject javaAssetMgrObj, jobject jav
 
     JNIEnv *env;
     vm->GetEnv((void **) &env, JNI_VERSION_1_6);
+    javaContext = env->NewGlobalRef(javaContextObj);
     javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
     javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
 }
@@ -108,7 +109,7 @@ Renderer::Renderer(JavaVM *vm, jobject obj, jobject javaAssetMgrObj, jobject jav
 Renderer::~Renderer() {
     LOG_DEBUG("Renderer instance destroyed");
 
-    // TODO: deallocate javaAssetMgr, javaVideoTexturePlayer?
+    // TODO: deallocate javaContext, javaAssetMgr, javaVideoTexturePlayer?
 }
 
 void Renderer::OnPause() {

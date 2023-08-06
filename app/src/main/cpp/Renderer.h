@@ -23,6 +23,7 @@ public:
     void OnResume();
 
 private:
+    jobject javaContext;
     jobject javaAssetMgr;
     jobject javaVideoTexturePlayer;
 
