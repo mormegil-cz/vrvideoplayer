@@ -7,55 +7,86 @@
 #include "logger.h"
 #include "Renderer.h"
 
-#define LOG_TAG "VrVideoPlayerN"
+#define LOG_TAG "VRVideoPlayerN"
 
-static ANativeWindow *window = nullptr;
-static Renderer *renderer = nullptr;
-
-extern "C" JNIEXPORT void JNICALL
-Java_cz_mormegil_vrvideoplayer_MainActivity_nativeOnStart(
-        JNIEnv* /* jenv */,
-        jobject /* this */) {
-    LOG_INFO("nativeOnStart");
-    renderer = new Renderer();
+inline jlong toJava(Renderer* native_app) {
+    return reinterpret_cast<intptr_t>(native_app);
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_cz_mormegil_vrvideoplayer_MainActivity_nativeOnResume(
-        JNIEnv* /* jenv */,
-        jobject /* this */) {
-    LOG_INFO("nativeOnResume");
-    renderer->start();
+inline Renderer* fromJava(jlong ptr) {
+    return reinterpret_cast<Renderer*>(ptr);
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_cz_mormegil_vrvideoplayer_MainActivity_nativeOnPause(
-        JNIEnv* /* jenv */,
-        jobject /* this */) {
-    LOG_INFO("nativeOnPause");
-    renderer->stop();
+static JavaVM* javaVm;
+
+extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
+    javaVm = vm;
+    return JNI_VERSION_1_6;
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_cz_mormegil_vrvideoplayer_MainActivity_nativeOnStop(
-        JNIEnv* env,
-        jobject /* this */) {
-    LOG_INFO("nativeOnStop");
-    delete renderer;
-    renderer = 0;
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_cz_mormegil_vrvideoplayer_MainActivity_nativeSetSurface(
-        JNIEnv* jenv,
+extern "C" JNIEXPORT jlong JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeInit(
+        JNIEnv* /* env */,
         jobject /* this */,
-        jobject surface) {
-    if (surface != 0) {
-        window = ANativeWindow_fromSurface(jenv, surface);
-        LOG_INFO("Got window %p", window);
-        renderer->setWindow(window);
-    } else {
-        LOG_INFO("Releasing window");
-        ANativeWindow_release(window);
-    }
+        jobject contextObj,
+        jobject assets,
+        jobject videoTexturePlayer) {
+    LOG_DEBUG("nativeOnStart");
+    return toJava(new Renderer(javaVm, contextObj, assets, videoTexturePlayer));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeOnResume(
+        JNIEnv* /* env */,
+        jobject /* this */,
+        jlong native_app) {
+    LOG_DEBUG("nativeOnResume");
+    fromJava(native_app)->OnResume();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeOnPause(
+        JNIEnv* /* env */,
+        jobject /* this */,
+        jlong native_app) {
+    LOG_DEBUG("nativeOnPause");
+    fromJava(native_app)->OnPause();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeOnDestroy(
+        JNIEnv* /* env */,
+        jobject /* this */,
+        jlong native_app) {
+    LOG_DEBUG("nativeOnDestroy");
+    delete fromJava(native_app);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeOnSurfaceCreated(
+        JNIEnv* env,
+        jobject /* this */,
+        jlong native_app) {
+    LOG_DEBUG("nativeOnSurfaceCreated");
+    fromJava(native_app)->OnSurfaceCreated(env);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeSetScreenParams(
+        JNIEnv* /* env */,
+        jobject /* this */,
+        jlong native_app,
+        jint width,
+        jint height) {
+    LOG_DEBUG("nativeSetScreenParams");
+    fromJava(native_app)->SetScreenParams(width, height);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeDrawFrame(
+        JNIEnv* /* jenv */,
+        jobject /* this */,
+        jlong native_app) {
+    // LOG_DEBUG("nativeDrawFrame");
+    fromJava(native_app)->DrawFrame();
 }

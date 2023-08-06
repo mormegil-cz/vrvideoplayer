@@ -5,54 +5,52 @@
 #include <EGL/egl.h>
 #include <GLES/gl.h>
 
-#include <android/native_window.h>
-#include <android/native_window_jni.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 
+#include "glm/mat4x4.hpp"
 
 class Renderer {
 
 public:
-    Renderer();
+    Renderer(JavaVM* vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj);
     virtual ~Renderer();
 
-    // Following methods can be called from any thread.
-    // They send message to render thread which executes required actions.
-    void start();
-    void stop();
-    void setWindow(ANativeWindow* window);
+    void OnSurfaceCreated(JNIEnv* env);
+    void SetScreenParams(int width, int height);
+    void DrawFrame();
+    void OnPause();
+    void OnResume();
 
 private:
+    jobject javaContext;
+    jobject javaAssetMgr;
+    jobject javaVideoTexturePlayer;
 
-    enum RenderThreadMessage {
-        MSG_NONE = 0,
-        MSG_WINDOW_SET,
-        MSG_RENDER_LOOP_EXIT
-    };
+    bool screenParamsChanged;
+    bool deviceParamsChanged;
+    int screenWidth;
+    int screenHeight;
 
-    pthread_t _threadId;
-    pthread_mutex_t _mutex;
-    enum RenderThreadMessage _msg;
+    bool glInitialized;
 
-    // android window, supported by NDK r5 and newer
-    ANativeWindow* _window;
+    unsigned long frameCount;
+    GLfloat angle;
 
-    EGLDisplay _display;
-    EGLSurface _surface;
-    EGLContext _context;
-    GLfloat _angle;
+    GLuint obj_program;
+    GLint obj_position_param;
+    GLint obj_uv_param;
+    GLint obj_color_param;
+    GLint obj_modelview_projection_param;
 
-    // RenderLoop is called in a rendering thread started in start() method
-    // It creates rendering context and renders scene until stop() is called
-    void renderLoop();
+    GLuint depthRenderBuffer;
+    GLuint cubeTexture;
 
-    bool initialize();
-    void destroy();
+    bool UpdateDeviceParams();
+    void GlSetup();
+    void GlTeardown();
 
-    void drawFrame();
-
-    // Helper method for starting the thread
-    static void* threadStartCallback(void *myself);
-
+    glm::mat4 BuildMVPMatrix();
 };
 
 #endif //VRVIDEOPLAYER_RENDERER_H
