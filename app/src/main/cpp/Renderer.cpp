@@ -68,12 +68,12 @@ static GLubyte objIndices[] = {
 constexpr const char *kVertexShader = R"glsl(#version 300 es
 uniform mat4 u_MVP;
 in vec4 a_Position, a_Color;
-// in vec2 a_UV;
-// out vec2 v_UV;
+in vec2 a_UV;
+out vec2 v_UV;
 out vec4 v_Color;
 
 void main() {
-// v_UV = a_UV;
+  v_UV = a_UV;
   v_Color = a_Color;
   gl_Position = u_MVP * a_Position;
 })glsl";
@@ -81,14 +81,13 @@ void main() {
 constexpr const char *kFragmentShader = R"glsl(#version 300 es
 precision mediump float;
 
-// uniform sampler2D u_Texture;
-// in vec2 v_UV;
+uniform sampler2D u_Texture;
+in vec2 v_UV;
 in vec4 v_Color;
 out vec4 fragColor;
 
 void main() {
-  // fragColor = texture(u_Texture, vec2(v_UV.x, v_UV.y)) * v_Color;
-  fragColor = v_Color;
+  fragColor = texture(u_Texture, v_UV) * v_Color;
 })glsl";
 
 Renderer::Renderer(JavaVM *vm, jobject obj, jobject asset_mgr_obj, jobject java_app_obj)
@@ -148,11 +147,25 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     CHECK_GL_ERROR("Obj program");
 
     obj_position_param = glGetAttribLocation(obj_program, "a_Position");
-    // obj_uv_param = glGetAttribLocation(obj_program, "a_UV");
+    obj_uv_param = glGetAttribLocation(obj_program, "a_UV");
     obj_color_param = glGetAttribLocation(obj_program, "a_Color");
     obj_modelview_projection_param = glGetUniformLocation(obj_program, "u_MVP");
 
     CHECK_GL_ERROR("Obj program params");
+
+    glGenTextures(1, &cubeTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cubeTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (!LoadPngFromAssetManager(env, java_asset_mgr, GL_TEXTURE_2D, "test-image-square.png")) {
+        LOG_ERROR("Couldn't load cube texture");
+    }
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    CHECK_GL_ERROR("Texture load");
 }
 
 void Renderer::DrawFrame() {
@@ -170,6 +183,9 @@ void Renderer::DrawFrame() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cubeTexture);
+
     glUseProgram(obj_program);
 
     auto mvpMatrix = BuildMVPMatrix();
@@ -177,8 +193,8 @@ void Renderer::DrawFrame() {
 
     glEnableVertexAttribArray(obj_position_param);
     glVertexAttribPointer(obj_position_param, 3, GL_FLOAT, GL_FALSE, 0, objVertices);
-//    glEnableVertexAttribArray(obj_uv_param);
-//    glVertexAttribPointer(obj_uv_param, 2, GL_FLOAT, false, 0, objUV);
+    glEnableVertexAttribArray(obj_uv_param);
+    glVertexAttribPointer(obj_uv_param, 2, GL_FLOAT, false, 0, objUV);
     glEnableVertexAttribArray(obj_color_param);
     glVertexAttribPointer(obj_color_param, 4, GL_FLOAT, GL_FALSE, 0, objColors);
 
@@ -269,7 +285,7 @@ glm::mat4 Renderer::BuildMVPMatrix() {
             glm::vec3(0.0f, 0.0f, -3.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
-            );
+    );
 
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, angle * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));

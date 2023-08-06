@@ -1,5 +1,6 @@
 package cz.mormegil.vrvideoplayer
 
+import android.graphics.BitmapFactory
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
@@ -24,18 +25,18 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Log.d(TAG, "onCreate()");
+        Log.d(TAG, "onCreate()")
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        glView = binding.surfaceview;
-        glView.setEGLContextClientVersion(2);
+        glView = binding.surfaceview
+        glView.setEGLContextClientVersion(2)
         val renderer = Renderer()
         glView.setRenderer(renderer)
         glView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
 
-        nativeApp = NativeLibrary.nativeInit(assets);
+        nativeApp = NativeLibrary.nativeInit(assets)
 
         glView.setOnClickListener {
             val toast = Toast.makeText(
@@ -44,7 +45,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.LENGTH_LONG
             )
             toast.show();
-        };
+        }
     }
 
     override fun onResume() {

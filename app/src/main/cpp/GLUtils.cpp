@@ -8,11 +8,20 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <utility>
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
 #define LOG_TAG "VRVideoPlayerU"
+
+class RunAtEndOfScope {
+public:
+    RunAtEndOfScope(std::function<void()> function) : function(std::move(function)) {}
+    ~RunAtEndOfScope() { function(); }
+private:
+    std::function<void()> function;
+};
 
 GLuint LoadGLShader(GLenum type, const char *shader_source) {
     GLuint shader = glCreateShader(type);
@@ -51,4 +60,41 @@ void CheckGlError(const char *file, int line, const char *label) {
         // Crash immediately to make OpenGL errors obvious.
         abort();
     }
+}
+
+bool LoadPngFromAssetManager(JNIEnv* env, jobject java_asset_mgr, int target,
+                             const std::string& path) {
+    jclass bitmap_factory_class =
+            env->FindClass("android/graphics/BitmapFactory");
+    jclass asset_manager_class =
+            env->FindClass("android/content/res/AssetManager");
+    jclass gl_utils_class = env->FindClass("android/opengl/GLUtils");
+    jmethodID decode_stream_method = env->GetStaticMethodID(
+            bitmap_factory_class, "decodeStream",
+            "(Ljava/io/InputStream;)Landroid/graphics/Bitmap;");
+    jmethodID open_method = env->GetMethodID(
+            asset_manager_class, "open", "(Ljava/lang/String;)Ljava/io/InputStream;");
+    jmethodID tex_image_2d_method = env->GetStaticMethodID(
+            gl_utils_class, "texImage2D", "(IILandroid/graphics/Bitmap;I)V");
+
+    jstring j_path = env->NewStringUTF(path.c_str());
+    RunAtEndOfScope cleanup_j_path([&] {
+        if (j_path) {
+            env->DeleteLocalRef(j_path);
+        }
+    });
+
+    jobject image_stream =
+            env->CallObjectMethod(java_asset_mgr, open_method, j_path);
+    jobject image_obj = env->CallStaticObjectMethod(
+            bitmap_factory_class, decode_stream_method, image_stream);
+    if (env->ExceptionOccurred() != nullptr) {
+        LOG_ERROR("Java exception while loading image");
+        env->ExceptionClear();
+        return false;
+    }
+
+    env->CallStaticVoidMethod(gl_utils_class, tex_image_2d_method, target, 0,
+                              image_obj, 0);
+    return true;
 }

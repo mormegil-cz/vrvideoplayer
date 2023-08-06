@@ -42,10 +42,11 @@ private:
     GLint obj_position_param;
     GLint obj_uv_param;
     GLint obj_color_param;
+    GLint obj_modelview_projection_param;
 
     GLuint depthRenderBuffer;
+    GLuint cubeTexture;
 
-    GLint obj_modelview_projection_param;
     bool UpdateDeviceParams();
     void GlSetup();
     void GlTeardown();
