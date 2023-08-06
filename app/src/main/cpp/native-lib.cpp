@@ -7,7 +7,7 @@
 #include "logger.h"
 #include "Renderer.h"
 
-#define LOG_TAG "VrVideoPlayerN"
+#define LOG_TAG "VRVideoPlayerN"
 
 inline jlong toJava(Renderer* native_app) {
     return reinterpret_cast<intptr_t>(native_app);

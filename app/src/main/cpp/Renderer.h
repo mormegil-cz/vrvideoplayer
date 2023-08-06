@@ -35,18 +35,21 @@ private:
 
     bool glInitialized;
 
+    unsigned long frameCount;
     GLfloat angle;
+
     GLuint obj_program;
     GLint obj_position_param;
     GLint obj_uv_param;
     GLint obj_color_param;
+
     GLuint depthRenderBuffer;
 
     GLint obj_modelview_projection_param;
-
     bool UpdateDeviceParams();
     void GlSetup();
     void GlTeardown();
+
     glm::mat4 BuildMVPMatrix();
 };
 

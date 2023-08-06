@@ -12,7 +12,7 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
-#define LOG_TAG "VrVideoPlayerU"
+#define LOG_TAG "VRVideoPlayerU"
 
 GLuint LoadGLShader(GLenum type, const char *shader_source) {
     GLuint shader = glCreateShader(type);
@@ -32,7 +32,7 @@ GLuint LoadGLShader(GLenum type, const char *shader_source) {
         }
 
         std::vector<char> info_string(info_len);
-        glGetShaderInfoLog(shader, info_string.size(), nullptr, info_string.data());
+        glGetShaderInfoLog(shader, info_len, nullptr, info_string.data());
         LOG_ERROR("Could not compile shader of type %d: %s", type, info_string.data());
         glDeleteShader(shader);
         return 0;
