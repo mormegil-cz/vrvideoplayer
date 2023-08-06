@@ -80,9 +80,11 @@ void main() {
 })glsl";
 
 constexpr const char *kFragmentShader = R"glsl(#version 300 es
+#extension GL_OES_EGL_image_external : enable
+#extension GL_OES_EGL_image_external_essl3 : enable
 precision mediump float;
 
-uniform sampler2D u_Texture;
+uniform samplerExternalOES u_Texture;
 in vec2 v_UV;
 in vec4 v_Color;
 out vec4 fragColor;
@@ -152,7 +154,7 @@ static void bindTexture(GLuint textureId) {
     glBindTexture(GL_TEXTURE_2D, textureId);
 }
 
-static void initVideoTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const std::string &path) {
+static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId, const std::string &path) {
     glGenTextures(1, &textureId);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
@@ -161,7 +163,7 @@ static void initVideoTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textur
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (!InitVideoTexture(env, vrapp, GL_TEXTURE_EXTERNAL_OES, path)) {
+    if (!InitVideoTexture(env, javaVideoTexturePlayer, textureId, path)) {
         LOG_ERROR("Couldn't initialize video texture");
         return;
     }
@@ -192,7 +194,8 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     obj_modelview_projection_param = glGetUniformLocation(obj_program, "u_MVP");
     CHECK_GL_ERROR("Obj program params");
 
-    initTexture(env, javaAssetMgr, cubeTexture, "test-image-square.png");
+    // initTexture(env, javaAssetMgr, cubeTexture, "test-image-square.png");
+    initVideoTexture(env, javaVideoTexturePlayer, cubeTexture, "video-texture.webm");
 }
 
 void Renderer::DrawFrame() {
@@ -209,8 +212,11 @@ void Renderer::DrawFrame() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    CHECK_GL_ERROR("Params");
 
-    bindTexture(cubeTexture)
+    // bindTexture(cubeTexture);
+    bindVideoTexture(cubeTexture);
+    CHECK_GL_ERROR("Bind texture");
 
     glUseProgram(obj_program);
 
@@ -220,12 +226,13 @@ void Renderer::DrawFrame() {
     glEnableVertexAttribArray(obj_position_param);
     glVertexAttribPointer(obj_position_param, 3, GL_FLOAT, GL_FALSE, 0, objVertices);
     glEnableVertexAttribArray(obj_uv_param);
-    glVertexAttribPointer(obj_uv_param, 2, GL_FLOAT, false, 0, objUV);
+    glVertexAttribPointer(obj_uv_param, 2, GL_FLOAT, GL_FALSE, 0, objUV);
     glEnableVertexAttribArray(obj_color_param);
     glVertexAttribPointer(obj_color_param, 4, GL_FLOAT, GL_FALSE, 0, objColors);
 
     glDrawElements(GL_TRIANGLES, (sizeof objIndices) / (sizeof objIndices[0]), GL_UNSIGNED_BYTE,
                    objIndices);
+    CHECK_GL_ERROR("Render");
 
     angle += glm::radians(1.2f);
     ++frameCount;

@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         glView.setRenderer(renderer)
         glView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
 
-        videoTexturePlayer = VideoTexturePlayer(assets)
+        videoTexturePlayer = VideoTexturePlayer(assets, "video-texture.webm")
 
         nativeApp = NativeLibrary.nativeInit(assets, videoTexturePlayer)
 
@@ -85,6 +85,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onDrawFrame(gl10: GL10?) {
+            videoTexturePlayer.updateIfNeeded()
             NativeLibrary.nativeDrawFrame(nativeApp);
         }
     }

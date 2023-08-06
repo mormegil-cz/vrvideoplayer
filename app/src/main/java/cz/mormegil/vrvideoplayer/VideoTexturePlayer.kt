@@ -2,14 +2,16 @@ package cz.mormegil.vrvideoplayer
 
 import android.content.res.AssetManager
 import android.graphics.SurfaceTexture
+import android.graphics.SurfaceTexture.OnFrameAvailableListener
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.opengl.GLES20
 import android.util.Log
 import android.view.Surface
+import java.util.concurrent.atomic.AtomicBoolean
 
 
-class VideoTexturePlayer(private val assetManager: AssetManager) {
+class VideoTexturePlayer(private val assetManager: AssetManager, private val videoAssetPath: String) : OnFrameAvailableListener {
     companion object {
         private const val TAG = "VRVideoPlayerV"
         private fun checkGLErrors(where: String) {
@@ -21,16 +23,16 @@ class VideoTexturePlayer(private val assetManager: AssetManager) {
     }
 
     private var surfaceTexture: SurfaceTexture? = null
-    private var surface: Surface? = null
     private var mediaPlayer: MediaPlayer? = null
+    private val frameAvailable: AtomicBoolean = AtomicBoolean(false)
 
-    public fun initialize(texName: Int, videoAssetPath: String) {
+    fun initializePlayback(texName: Int) {
         cleanup()
 
-        this.surfaceTexture = SurfaceTexture(texName)
+        val surfaceTexture = SurfaceTexture(texName)
+        this.surfaceTexture = surfaceTexture
+        surfaceTexture.setOnFrameAvailableListener(this);
         checkGLErrors("new SurfaceTexture")
-        surface = Surface(surfaceTexture)
-        checkGLErrors("new Surface")
 
         val mediaPlayer = MediaPlayer()
         this.mediaPlayer = mediaPlayer
@@ -42,8 +44,12 @@ class VideoTexturePlayer(private val assetManager: AssetManager) {
             )
         }
 
+        val surface = Surface(surfaceTexture)
+        checkGLErrors("new Surface")
         mediaPlayer.setSurface(surface)
+        surface.release()
         checkGLErrors("MediaPlayer setSurface")
+
         mediaPlayer.prepare()
         checkGLErrors("MediaPlayer prepare")
         /*
@@ -66,6 +72,8 @@ class VideoTexturePlayer(private val assetManager: AssetManager) {
         checkGLErrors("mediaPlayer set")
         mediaPlayer.start()
         checkGLErrors("mediaPlayer start")
+
+        Log.d(TAG, "VideoTexturePlayer initialized with $videoAssetPath")
     }
 
     private fun cleanup() {
@@ -75,24 +83,36 @@ class VideoTexturePlayer(private val assetManager: AssetManager) {
             mediaPlayer.stop()
             mediaPlayer.release()
         }
-        val surface = this.surface
-        this.surface = null
-        surface?.release()
         val surfaceTexture = this.surfaceTexture
         this.surfaceTexture = null
         surfaceTexture?.release()
         checkGLErrors("cleanup")
+
+        Log.d(TAG, "VideoTexturePlayer cleaned up")
     }
 
     fun onPause() {
         mediaPlayer?.pause()
+        Log.d(TAG, "onPause")
     }
 
     fun onResume() {
         mediaPlayer?.start()
+        Log.d(TAG, "onResume")
     }
 
     fun onDestroy() {
         cleanup()
+        Log.d(TAG, "onDestroy")
+    }
+
+    override fun onFrameAvailable(tex: SurfaceTexture?) {
+        frameAvailable.set(true)
+    }
+
+    fun updateIfNeeded() {
+        if (frameAvailable.getAndSet(false)) {
+            surfaceTexture?.updateTexImage()
+        }
     }
 }

@@ -17,4 +17,6 @@ void CheckGlError(const char *file, int line, const char *label);
 
 bool LoadPngFromAssetManager(JNIEnv *env, jobject java_asset_mgr, int target, const std::string &path);
 
+bool InitVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, int textureName, const std::string &path);
+
 #endif //VR_VIDEO_PLAYER_GLUTILS_H

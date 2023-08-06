@@ -101,10 +101,10 @@ bool LoadPngFromAssetManager(JNIEnv *env, jobject java_asset_mgr, int target,
     return true;
 }
 
-bool InitVideoTexture(JNIEnv *env, jobject vrapp, int target, const std::string &path) {
-    jclass vrapp_class = env->FindClass("cz/mormegil/vrvideoplayer/VideoTexturePlayer");
-    jmethodID prepare_video_player_method = env->GetMethodID(vrapp_class, "prepareVideoPlayer",
-                                                             "(ILjava/lang/String;)V");
+bool InitVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, int textureName, const std::string &path) {
+    jclass videoTexturePlayerClazz = env->FindClass("cz/mormegil/vrvideoplayer/VideoTexturePlayer");
+    jmethodID initializeVideoTexturePlayerMethod = env->GetMethodID(videoTexturePlayerClazz, "initializePlayback",
+                                                                    "(I)V");
 
     jstring j_path = env->NewStringUTF(path.c_str());
     RunAtEndOfScope cleanup_j_path([&] {
@@ -113,7 +113,7 @@ bool InitVideoTexture(JNIEnv *env, jobject vrapp, int target, const std::string 
         }
     });
 
-    env->CallVoidMethod(vrapp, prepare_video_player_method, target, j_path);
+    env->CallVoidMethod(javaVideoTexturePlayer, initializeVideoTexturePlayerMethod, textureName);
 
     if (env->ExceptionOccurred() != nullptr) {
         LOG_ERROR("Java exception while preparing video texture");
