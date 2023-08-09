@@ -43,15 +43,10 @@ class MainActivity : AppCompatActivity() {
         glView.setRenderer(renderer)
         glView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
         glView.setOnClickListener {
-            val toast = Toast.makeText(
-                this,
-                "This demo combines Java UI and native EGL + OpenGL renderer",
-                Toast.LENGTH_LONG
-            )
-            toast.show()
+            videoTexturePlayer.seek(5000)
         }
 
-        videoTexturePlayer = VideoTexturePlayer(this, videoUri!!)
+        videoTexturePlayer = VideoTexturePlayer(this, videoUri)
 
         nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
     }

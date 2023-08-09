@@ -7,6 +7,7 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.opengl.GLES20
+import android.os.Build
 import android.util.Log
 import android.view.Surface
 import java.util.concurrent.atomic.AtomicBoolean
@@ -70,6 +71,15 @@ class VideoTexturePlayer(private val context: Context, private val videoSourceUr
         checkGLErrors("mediaPlayer start")
 
         Log.d(TAG, "VideoTexturePlayer initialized with $videoSourceUri")
+    }
+
+    fun seek(relSeek: Int) {
+        val mp = mediaPlayer ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mp.seekTo((mp.currentPosition + relSeek).toLong(), MediaPlayer.SEEK_CLOSEST);
+        } else {
+            mp.seekTo(mp.currentPosition + relSeek);
+        }
     }
 
     private fun cleanup() {
