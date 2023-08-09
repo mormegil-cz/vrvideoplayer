@@ -153,12 +153,11 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
 
     programParamPosition = glGetAttribLocation(program, "a_Position");
     programParamUV = glGetAttribLocation(program, "a_UV");
-    programParamColor = glGetAttribLocation(program, "a_Color");
     programParamMVPMatrix = glGetUniformLocation(program, "u_MVP");
     CHECK_GL_ERROR("Obj program params");
 
-    // initTexture(env, javaAssetMgr, cubeTexture, "test-image-square.png");
-    initVideoTexture(env, javaVideoTexturePlayer, cubeTexture);
+    // initTexture(env, javaAssetMgr, videoTexture, "test-image-square.png");
+    initVideoTexture(env, javaVideoTexturePlayer, videoTexture);
 }
 
 void Renderer::DrawFrame() {
@@ -166,16 +165,16 @@ void Renderer::DrawFrame() {
         return;
     }
 
-    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glDisable(GL_SCISSOR_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
     CHECK_GL_ERROR("Params");
 
-    // bindTexture(cubeTexture);
-    bindVideoTexture(cubeTexture);
+    // bindTexture(videoTexture);
+    bindVideoTexture(videoTexture);
     CHECK_GL_ERROR("Bind texture");
 
     glUseProgram(program);
@@ -235,11 +234,13 @@ void Renderer::GlSetup() {
     }
     glInitialized = true;
 
+    /*
     // Generate depth buffer to perform depth test.
     glGenRenderbuffers(1, &depthRenderBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screenWidth, screenHeight);
     CHECK_GL_ERROR("Create depth buffer");
+    */
 
 
     /*
@@ -271,8 +272,10 @@ void Renderer::GlTeardown() {
     }
     glInitialized = false;
 
+    /*
     glDeleteRenderbuffers(1, &depthRenderBuffer);
     depthRenderBuffer = 0;
+    */
     /*
     glDeleteFramebuffers(1, &framebuffer);
     framebuffer = 0;
@@ -285,11 +288,11 @@ void Renderer::GlTeardown() {
 
 glm::mat4 Renderer::BuildMVPMatrix() {
     auto aspect = (float) screenWidth / (float) screenHeight;
-    glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 1.0f, 10.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 0.1f, 10.0f);
 
     glm::mat4 view = glm::lookAt(
-            glm::vec3(0.0f, 0.0f, 3.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, -1.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
@@ -311,56 +314,55 @@ void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
 }
 
 static TexturedMesh
-BuildUvSphereMesh(int n_slices, int n_stacks, float minAngle, float maxAngle, float uvLeft,
+BuildUvSphereMesh(int n_slices, int n_stacks, float minTheta, float maxTheta, float uvLeft,
                   float uvTop, float uvRight, float uvBottom) {
     TexturedMesh::Builder meshBuilder;
 
     float uvWidth = uvRight - uvLeft;
     float uvHeight = uvBottom - uvTop;
-    float uvHorizMid = uvLeft + (uvWidth * 0.5f);
-
-    // add top vertex
-    meshBuilder.add_vertex(0.0, 1.0, 0.0, uvHorizMid, uvTop);
 
     // generate vertices per stack / slice
-    for (int i = 0; i < n_stacks - 1; i++) {
-        auto uFrac = float(i + 1) / float(n_stacks);
-        auto phi = float(M_PI) * uFrac;
-        auto u = uFrac * uvHeight + uvTop;
-        for (int j = 0; j < n_slices; j++) {
-            auto vFrac = float(j) / float(n_slices);
-            auto theta = minAngle + (maxAngle - minAngle) * vFrac;
-            auto v = vFrac * uvWidth + uvLeft;
-            auto x = std::sinf(phi) * std::cosf(theta);
+    for (int i = 0; i <= n_stacks; i++) {
+        auto vFrac = float(i) / float(n_stacks);
+        auto phi = float(M_PI) * vFrac;
+        auto v = vFrac * uvHeight + uvTop;
+
+        for (int j = 0; j <= n_slices; j++) {
+            auto uFrac = float(j) / float(n_slices);
+            auto theta = -(minTheta + (maxTheta - minTheta) * uFrac);
+            auto u = uFrac * uvWidth + uvLeft;
+            auto x = std::sinf(phi) * std::sinf(theta);
             auto y = std::cosf(phi);
-            auto z = std::sinf(phi) * std::sinf(theta);
+            auto z = std::sinf(phi) * std::cosf(theta);
+
+            // texture correction for top- and bottom-layer vertices (collapsed into a point)
+            if ((i == 0) || (i == n_stacks)) {
+                u += 1.0f / float(n_slices);
+                if (u > 1.0f) u -= 1.0f;
+            }
+
             meshBuilder.add_vertex(x, y, z, u, v);
         }
     }
 
-    // add bottom vertex
-    auto v1 = meshBuilder.add_vertex(0.0, -1.0, 0.0, uvHorizMid, uvBottom);
-
-    // add top / bottom triangles
-    for (int i = 0; i < n_slices; ++i) {
-        auto i0 = i + 1;
-        auto i1 = (i + 1) % n_slices + 1;
-        meshBuilder.add_triangle(0, i1, i0);
-        i0 = i + n_slices * (n_stacks - 2) + 1;
-        i1 = (i + 1) % n_slices + n_slices * (n_stacks - 2) + 1;
-        meshBuilder.add_triangle(v1, i0, i1);
-    }
-
     // add quads per stack / slice
-    for (int j = 0; j < n_stacks - 2; j++) {
-        auto j0 = j * n_slices + 1;
-        auto j1 = (j + 1) * n_slices + 1;
+    for (int j = 0; j < n_stacks; j++) {
+        auto j0 = j * (n_slices + 1);
+        auto j1 = (j + 1) * (n_slices + 1);
         for (int i = 0; i < n_slices; i++) {
             auto i0 = j0 + i;
-            auto i1 = j0 + (i + 1) % n_slices;
-            auto i2 = j1 + (i + 1) % n_slices;
+            auto i1 = j0 + (i + 1);
+            auto i2 = j1 + (i + 1);
             auto i3 = j1 + i;
-            meshBuilder.add_quad(i0, i1, i2, i3);
+            // top- or bottom-layer are just triangles
+            if (j == 0) {
+                meshBuilder.add_triangle(i0, i2, i3);
+            } else if (j == (n_stacks - 1)) {
+                meshBuilder.add_triangle(i0, i2, i1);
+            } else {
+                // otherwise, quads
+                meshBuilder.add_quad(i0, i1, i2, i3);
+            }
         }
     }
 
@@ -427,7 +429,13 @@ void Renderer::ComputeMesh() {
             }
 
             case InputVideoMode::EQUIRECT_180:
-                eyeMeshes[eye] = BuildUvSphereMesh(20, 20, -M_PI * 0.5f, M_PI * 0.5f, uvLeft, uvTop, uvRight, uvBottom);
+                eyeMeshes[eye] = BuildUvSphereMesh(20, 20, M_PI_2, M_PI * 1.5f, uvLeft, uvTop,
+                                                   uvRight, uvBottom);
+                break;
+
+            case InputVideoMode::EQUIRECT_360:
+                eyeMeshes[eye] = BuildUvSphereMesh(20, 20, 0, M_2_PI, uvLeft, uvTop,
+                                                   uvRight, uvBottom);
                 break;
 
             default:

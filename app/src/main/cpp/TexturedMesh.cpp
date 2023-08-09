@@ -1,5 +1,7 @@
 #include "TexturedMesh.h"
 
+#include <GLES2/gl2.h>
+
 #include <utility>
 #include <cassert>
 
@@ -61,12 +63,12 @@ void TexturedMesh::Builder::add_triangle(GLushort a, GLushort b, GLushort c) {
 
 void TexturedMesh::Builder::add_quad(GLushort a, GLushort b, GLushort c, GLushort d) {
     vertexIndex.push_back(a);
-    vertexIndex.push_back(b);
     vertexIndex.push_back(c);
+    vertexIndex.push_back(b);
 
     vertexIndex.push_back(a);
     vertexIndex.push_back(d);
-    vertexIndex.push_back(b);
+    vertexIndex.push_back(c);
 }
 
 TexturedMesh TexturedMesh::Builder::build() {

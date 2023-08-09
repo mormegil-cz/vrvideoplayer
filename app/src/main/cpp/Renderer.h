@@ -77,11 +77,9 @@ private:
     GLuint program;
     GLint programParamPosition;
     GLint programParamUV;
-    GLint programParamColor;
     GLint programParamMVPMatrix;
 
-    GLuint depthRenderBuffer;
-    GLuint cubeTexture;
+    GLuint videoTexture;
 
     std::array<TexturedMesh, 2> eyeMeshes;
 
