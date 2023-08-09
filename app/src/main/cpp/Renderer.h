@@ -1,6 +1,8 @@
 #ifndef VRVIDEOPLAYER_RENDERER_H
 #define VRVIDEOPLAYER_RENDERER_H
 
+#include <array>
+
 #include <pthread.h>
 #include <EGL/egl.h>
 #include <GLES/gl.h>
@@ -10,16 +12,48 @@
 
 #include "glm/mat4x4.hpp"
 
-class Renderer {
+#include "TexturedMesh.h"
 
+enum class InputVideoLayout {
+    MONO,
+    STEREO_HORIZ,
+    STEREO_VERT,
+};
+
+enum class InputVideoMode {
+    PLAIN_FOV,
+    EQUIRECT_180,
+    EQUIRECT_360,
+    CUBE_MAP,
+    EQUIANG_CUBE_MAP,
+    PYRAMID,
+    PANORAMA_180,
+    PANORAMA_360,
+};
+
+enum class OutputMode {
+    MONO_LEFT,
+    MONO_RIGHT,
+    CARDBOARD_STEREO,
+};
+
+class Renderer {
 public:
-    Renderer(JavaVM* vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj);
+    Renderer(JavaVM *vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj);
+
     virtual ~Renderer();
 
-    void OnSurfaceCreated(JNIEnv* env);
+    void OnSurfaceCreated(JNIEnv *env);
+
+    void SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
+                    OutputMode outputMode);
+
     void SetScreenParams(int width, int height);
+
     void DrawFrame();
+
     void OnPause();
+
     void OnResume();
 
 private:
@@ -34,21 +68,30 @@ private:
 
     bool glInitialized;
 
-    unsigned long frameCount;
-    GLfloat angle;
+    InputVideoLayout inputVideoLayout;
+    InputVideoMode inputVideoMode;
+    OutputMode outputMode;
 
-    GLuint obj_program;
-    GLint obj_position_param;
-    GLint obj_uv_param;
-    GLint obj_color_param;
-    GLint obj_modelview_projection_param;
+    unsigned long frameCount;
+
+    GLuint program;
+    GLint programParamPosition;
+    GLint programParamUV;
+    GLint programParamColor;
+    GLint programParamMVPMatrix;
 
     GLuint depthRenderBuffer;
     GLuint cubeTexture;
 
+    std::array<TexturedMesh, 2> eyeMeshes;
+
     bool UpdateDeviceParams();
+
     void GlSetup();
+
     void GlTeardown();
+
+    void ComputeMesh();
 
     glm::mat4 BuildMVPMatrix();
 };

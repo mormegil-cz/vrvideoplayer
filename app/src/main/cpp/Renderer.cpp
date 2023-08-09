@@ -23,59 +23,15 @@
 
 #define LOG_TAG "VRVideoPlayerR"
 
-static GLfloat objVertices[] = {
-        -1.0, -1.0, -1.0,
-        +1.0, -1.0, -1.0,
-        +1.0, +1.0, -1.0,
-        -1.0, +1.0, -1.0,
-        -1.0, -1.0, +1.0,
-        +1.0, -1.0, +1.0,
-        +1.0, +1.0, +1.0,
-        -1.0, +1.0, +1.0
-};
-
-static GLfloat objUV[] = {
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-};
-
-static GLfloat objColors[] = {
-        0.00, 0.00, 0.00, 1.00,
-        1.00, 0.00, 0.00, 1.00,
-        1.00, 1.00, 0.00, 1.00,
-        0.00, 1.00, 0.00, 1.00,
-        0.00, 0.00, 1.00, 1.00,
-        1.00, 0.00, 1.00, 1.00,
-        1.00, 1.00, 1.00, 1.00,
-        0.00, 1.00, 1.00, 1.00,
-};
-
-static GLubyte objIndices[] = {
-        0, 4, 5, 0, 5, 1,
-        1, 5, 6, 1, 6, 2,
-        2, 6, 7, 2, 7, 3,
-        3, 7, 4, 3, 4, 0,
-        4, 7, 6, 4, 6, 5,
-        3, 0, 1, 3, 1, 2,
-};
-
 
 constexpr const char *kVertexShader = R"glsl(#version 300 es
 uniform mat4 u_MVP;
-in vec4 a_Position, a_Color;
+in vec4 a_Position;
 in vec2 a_UV;
 out vec2 v_UV;
-out vec4 v_Color;
 
 void main() {
   v_UV = a_UV;
-  v_Color = a_Color;
   gl_Position = u_MVP * a_Position;
 })glsl";
 
@@ -86,17 +42,20 @@ precision mediump float;
 
 uniform samplerExternalOES u_Texture;
 in vec2 v_UV;
-in vec4 v_Color;
 out vec4 fragColor;
 
 void main() {
-  fragColor = texture(u_Texture, v_UV) * v_Color;
+  fragColor = texture(u_Texture, v_UV);
 })glsl";
 
-Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj)
+Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
+                   jobject javaVideoTexturePlayerObj)
         : glInitialized(false),
-          angle(0),
-          frameCount(0) {
+          frameCount(0),
+          inputVideoMode(InputVideoMode::EQUIRECT_180),
+          inputVideoLayout(InputVideoLayout::STEREO_HORIZ),
+          outputMode(OutputMode::MONO_LEFT),
+          eyeMeshes{} {
     LOG_DEBUG("Renderer instance created");
 
     JNIEnv *env;
@@ -104,6 +63,8 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj, 
     javaContext = env->NewGlobalRef(javaContextObj);
     javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
     javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
+
+    SetOptions(InputVideoLayout::MONO, InputVideoMode::PLAIN_FOV, OutputMode::MONO_LEFT);
 }
 
 Renderer::~Renderer() {
@@ -133,7 +94,8 @@ void Renderer::SetScreenParams(int width, int height) {
     screenParamsChanged = true;
 }
 
-static void initTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const std::string &path) {
+static void
+initTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const std::string &path) {
     glGenTextures(1, &textureId);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureId);
@@ -155,7 +117,8 @@ static void bindTexture(GLuint textureId) {
     glBindTexture(GL_TEXTURE_2D, textureId);
 }
 
-static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId, const std::string &path) {
+static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId,
+                             const std::string &path) {
     glGenTextures(1, &textureId);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
@@ -182,17 +145,17 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     const GLuint obj_vertex_shader = LoadGLShader(GL_VERTEX_SHADER, kVertexShader);
     const GLuint obj_fragment_shader = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShader);
 
-    obj_program = glCreateProgram();
-    glAttachShader(obj_program, obj_vertex_shader);
-    glAttachShader(obj_program, obj_fragment_shader);
-    glLinkProgram(obj_program);
-    glUseProgram(obj_program);
+    program = glCreateProgram();
+    glAttachShader(program, obj_vertex_shader);
+    glAttachShader(program, obj_fragment_shader);
+    glLinkProgram(program);
+    glUseProgram(program);
     CHECK_GL_ERROR("Obj program");
 
-    obj_position_param = glGetAttribLocation(obj_program, "a_Position");
-    obj_uv_param = glGetAttribLocation(obj_program, "a_UV");
-    obj_color_param = glGetAttribLocation(obj_program, "a_Color");
-    obj_modelview_projection_param = glGetUniformLocation(obj_program, "u_MVP");
+    programParamPosition = glGetAttribLocation(program, "a_Position");
+    programParamUV = glGetAttribLocation(program, "a_UV");
+    programParamColor = glGetAttribLocation(program, "a_Color");
+    programParamMVPMatrix = glGetUniformLocation(program, "u_MVP");
     CHECK_GL_ERROR("Obj program params");
 
     // initTexture(env, javaAssetMgr, cubeTexture, "test-image-square.png");
@@ -204,11 +167,8 @@ void Renderer::DrawFrame() {
         return;
     }
 
-    glViewport(0, 0, screenWidth, screenHeight);
-
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CW); // TODO: Swap orientation and remove this
     glDisable(GL_SCISSOR_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -219,23 +179,36 @@ void Renderer::DrawFrame() {
     bindVideoTexture(cubeTexture);
     CHECK_GL_ERROR("Bind texture");
 
-    glUseProgram(obj_program);
+    glUseProgram(program);
 
-    auto mvpMatrix = BuildMVPMatrix();
-    glUniformMatrix4fv(obj_modelview_projection_param, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+    int minEye, maxEye;
+    switch (outputMode) {
+        case OutputMode::MONO_LEFT:
+            minEye = 0;
+            maxEye = 0;
+            break;
+        case OutputMode::MONO_RIGHT:
+            minEye = 1;
+            maxEye = 1;
+            break;
+        case OutputMode::CARDBOARD_STEREO:
+            minEye = 0;
+            maxEye = 1;
+            break;
+        default:
+            assert(false);
+    }
 
-    glEnableVertexAttribArray(obj_position_param);
-    glVertexAttribPointer(obj_position_param, 3, GL_FLOAT, GL_FALSE, 0, objVertices);
-    glEnableVertexAttribArray(obj_uv_param);
-    glVertexAttribPointer(obj_uv_param, 2, GL_FLOAT, GL_FALSE, 0, objUV);
-    glEnableVertexAttribArray(obj_color_param);
-    glVertexAttribPointer(obj_color_param, 4, GL_FLOAT, GL_FALSE, 0, objColors);
+    bool isMono = minEye == maxEye;
+    for (int eye = minEye; eye <= maxEye; ++eye) {
+        glViewport(0, 0, screenWidth, screenHeight);
 
-    glDrawElements(GL_TRIANGLES, (sizeof objIndices) / (sizeof objIndices[0]), GL_UNSIGNED_BYTE,
-                   objIndices);
-    CHECK_GL_ERROR("Render");
+        auto mvpMatrix = BuildMVPMatrix();
+        glUniformMatrix4fv(programParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
 
-    angle += glm::radians(1.2f);
+        eyeMeshes[eye].Render(programParamPosition, programParamUV);
+    }
+
     ++frameCount;
 }
 
@@ -263,6 +236,13 @@ void Renderer::GlSetup() {
     }
     glInitialized = true;
 
+    // Generate depth buffer to perform depth test.
+    glGenRenderbuffers(1, &depthRenderBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screenWidth, screenHeight);
+    CHECK_GL_ERROR("Create depth buffer");
+
+
     /*
     // Create render texture.
     glGenTextures(1, &texture);
@@ -271,23 +251,16 @@ void Renderer::GlSetup() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    */
 
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
-    // Generate depth buffer to perform depth test.
-    glGenRenderbuffers(1, &depthRenderBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screenWidth, screenHeight);
-    CHECK_GL_ERROR("Create Render buffer");
-
-    /*
     // Create render target.
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
                               depthRenderBuffer);
+    CHECK_GL_ERROR("Create render buffer");
     */
 
     CHECK_GL_ERROR("GlSetup");
@@ -316,13 +289,125 @@ glm::mat4 Renderer::BuildMVPMatrix() {
     glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 1.0f, 10.0f);
 
     glm::mat4 view = glm::lookAt(
-            glm::vec3(0.0f, 0.0f, -3.0f),
+            glm::vec3(0.0f, 0.0f, 3.0f),
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
+    /*
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, angle * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
+    */
+    glm::mat4 model = glm::mat4(1.0f);
 
     return projection * view * model;
+}
+
+void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
+                          OutputMode outputMode) {
+    this->inputVideoLayout = layout;
+    this->inputVideoMode = inputMode;
+    this->outputMode = outputMode;
+    ComputeMesh();
+}
+
+void Renderer::ComputeMesh() {
+    for (int eye = 0; eye < 2; ++eye) {
+        float uvLeft, uvTop, uvRight, uvBottom;
+        switch (inputVideoLayout) {
+            case InputVideoLayout::MONO:
+                uvLeft = 0.0f;
+                uvRight = 1.0f;
+                uvTop = 0.0f;
+                uvBottom = 1.0f;
+                break;
+
+            case InputVideoLayout::STEREO_HORIZ:
+                uvLeft = 0.5f * static_cast<float>(eye);
+                uvRight = 0.5f * static_cast<float>(eye + 1);
+                uvTop = 0.0f;
+                uvBottom = 1.0f;
+                break;
+
+            case InputVideoLayout::STEREO_VERT:
+                uvLeft = 0.0f;
+                uvRight = 1.0f;
+                uvTop = 0.5f * static_cast<float>(eye);
+                uvBottom = 0.5f * static_cast<float>(eye + 1);
+                break;
+
+            default:
+                assert(false);
+        }
+
+        switch (inputVideoMode) {
+            case InputVideoMode::PLAIN_FOV: {
+                std::unique_ptr<GLfloat[]> pos{new GLfloat[12]{
+                        -1.0f, +1.0f, -1.0f,
+                        +1.0f, +1.0f, -1.0f,
+                        +1.0f, -1.0f, -1.0f,
+                        -1.0f, -1.0f, -1.0f
+                }};
+                std::unique_ptr<GLfloat[]> uv{new GLfloat[8]{
+                        uvLeft, uvTop,
+                        uvRight, uvTop,
+                        uvRight, uvBottom,
+                        uvLeft, uvBottom
+                }};
+                std::unique_ptr<GLushort[]> indices{new GLushort[6]{
+                        0, 2, 1,
+                        0, 3, 2
+                }};
+
+                eyeMeshes[eye] =
+                        TexturedMesh(
+                                6,
+                                std::move(pos),
+                                std::move(uv),
+                                std::move(indices)
+                        );
+
+                break;
+            }
+
+            default:
+                std::unique_ptr<GLfloat[]> pos{new GLfloat[]{
+                        -1.0, -1.0, -1.0,
+                        +1.0, -1.0, -1.0,
+                        +1.0, +1.0, -1.0,
+                        -1.0, +1.0, -1.0,
+                        -1.0, -1.0, +1.0,
+                        +1.0, -1.0, +1.0,
+                        +1.0, +1.0, +1.0,
+                        -1.0, +1.0, +1.0
+                }};
+                std::unique_ptr<GLfloat[]> uv{new GLfloat[]{
+                        0.0f, 0.0f,
+                        1.0f, 0.0f,
+                        1.0f, 1.0f,
+                        0.0f, 1.0f,
+                        0.0f, 0.0f,
+                        1.0f, 0.0f,
+                        1.0f, 1.0f,
+                        0.0f, 1.0f,
+                }};
+                std::unique_ptr<GLushort[]> indices{new GLushort[]{
+                        0, 5, 4, 0, 1, 5,
+                        1, 6, 5, 1, 2, 6,
+                        2, 7, 6, 2, 3, 7,
+                        3, 4, 7, 3, 0, 4,
+                        4, 6, 7, 4, 5, 6,
+                        3, 1, 0, 3, 2, 1,
+                }};
+
+                eyeMeshes[eye] =
+                        TexturedMesh(
+                                36,
+                                std::move(pos),
+                                std::move(uv),
+                                std::move(indices)
+                        );
+                break;
+        }
+    }
 }
