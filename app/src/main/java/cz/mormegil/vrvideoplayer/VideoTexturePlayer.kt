@@ -1,17 +1,19 @@
 package cz.mormegil.vrvideoplayer
 
-import android.content.res.AssetManager
+import android.content.Context
 import android.graphics.SurfaceTexture
 import android.graphics.SurfaceTexture.OnFrameAvailableListener
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.net.Uri
 import android.opengl.GLES20
 import android.util.Log
 import android.view.Surface
 import java.util.concurrent.atomic.AtomicBoolean
 
 
-class VideoTexturePlayer(private val assetManager: AssetManager, private val videoAssetPath: String) : OnFrameAvailableListener {
+class VideoTexturePlayer(private val context: Context, private val videoSourceUri: Uri) :
+    OnFrameAvailableListener {
     companion object {
         private const val TAG = "VRVideoPlayerV"
         private fun checkGLErrors(where: String) {
@@ -36,13 +38,7 @@ class VideoTexturePlayer(private val assetManager: AssetManager, private val vid
 
         val mediaPlayer = MediaPlayer()
         this.mediaPlayer = mediaPlayer
-        assetManager.openFd(videoAssetPath).use { videoDescriptor ->
-            mediaPlayer.setDataSource(
-                videoDescriptor.fileDescriptor,
-                videoDescriptor.startOffset,
-                videoDescriptor.length
-            )
-        }
+        mediaPlayer.setDataSource(context, videoSourceUri)
 
         val surface = Surface(surfaceTexture)
         checkGLErrors("new Surface")
@@ -73,7 +69,7 @@ class VideoTexturePlayer(private val assetManager: AssetManager, private val vid
         mediaPlayer.start()
         checkGLErrors("mediaPlayer start")
 
-        Log.d(TAG, "VideoTexturePlayer initialized with $videoAssetPath")
+        Log.d(TAG, "VideoTexturePlayer initialized with $videoSourceUri")
     }
 
     private fun cleanup() {

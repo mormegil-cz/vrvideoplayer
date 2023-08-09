@@ -117,8 +117,7 @@ static void bindTexture(GLuint textureId) {
     glBindTexture(GL_TEXTURE_2D, textureId);
 }
 
-static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId,
-                             const std::string &path) {
+static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId) {
     glGenTextures(1, &textureId);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
@@ -127,7 +126,7 @@ static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (!InitVideoTexturePlayback(env, javaVideoTexturePlayer, textureId, path)) {
+    if (!InitVideoTexturePlayback(env, javaVideoTexturePlayer, textureId)) {
         LOG_ERROR("Couldn't initialize video texture");
         return;
     }
@@ -159,7 +158,7 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     CHECK_GL_ERROR("Obj program params");
 
     // initTexture(env, javaAssetMgr, cubeTexture, "test-image-square.png");
-    initVideoTexture(env, javaVideoTexturePlayer, cubeTexture, "video-texture.webm");
+    initVideoTexture(env, javaVideoTexturePlayer, cubeTexture);
 }
 
 void Renderer::DrawFrame() {

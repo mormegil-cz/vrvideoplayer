@@ -101,19 +101,11 @@ bool LoadPngFromAssetManager(JNIEnv *env, jobject java_asset_mgr, int target,
     return true;
 }
 
-bool InitVideoTexturePlayback(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint textureName,
-                              const std::string &path) {
+bool InitVideoTexturePlayback(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint textureName) {
     jclass videoTexturePlayerClazz = env->FindClass("cz/mormegil/vrvideoplayer/VideoTexturePlayer");
     jmethodID initializeVideoTexturePlayerMethod = env->GetMethodID(videoTexturePlayerClazz,
                                                                     "initializePlayback",
                                                                     "(I)V");
-
-    jstring j_path = env->NewStringUTF(path.c_str());
-    RunAtEndOfScope cleanup_j_path([&] {
-        if (j_path) {
-            env->DeleteLocalRef(j_path);
-        }
-    });
 
     if (textureName > INT32_MAX) {
         // ??!?
