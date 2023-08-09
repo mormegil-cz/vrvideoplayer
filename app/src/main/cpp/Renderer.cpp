@@ -64,7 +64,7 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
     javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
     javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
 
-    SetOptions(InputVideoLayout::MONO, InputVideoMode::PLAIN_FOV, OutputMode::MONO_LEFT);
+    SetOptions(InputVideoLayout::STEREO_HORIZ, InputVideoMode::EQUIRECT_180, OutputMode::MONO_LEFT);
 }
 
 Renderer::~Renderer() {
@@ -310,6 +310,63 @@ void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
     ComputeMesh();
 }
 
+static TexturedMesh
+BuildUvSphereMesh(int n_slices, int n_stacks, float minAngle, float maxAngle, float uvLeft,
+                  float uvTop, float uvRight, float uvBottom) {
+    TexturedMesh::Builder meshBuilder;
+
+    float uvWidth = uvRight - uvLeft;
+    float uvHeight = uvBottom - uvTop;
+    float uvHorizMid = uvLeft + (uvWidth * 0.5f);
+
+    // add top vertex
+    meshBuilder.add_vertex(0.0, 1.0, 0.0, uvHorizMid, uvTop);
+
+    // generate vertices per stack / slice
+    for (int i = 0; i < n_stacks - 1; i++) {
+        auto uFrac = float(i + 1) / float(n_stacks);
+        auto phi = float(M_PI) * uFrac;
+        auto u = uFrac * uvHeight + uvTop;
+        for (int j = 0; j < n_slices; j++) {
+            auto vFrac = float(j) / float(n_slices);
+            auto theta = minAngle + (maxAngle - minAngle) * vFrac;
+            auto v = vFrac * uvWidth + uvLeft;
+            auto x = std::sinf(phi) * std::cosf(theta);
+            auto y = std::cosf(phi);
+            auto z = std::sinf(phi) * std::sinf(theta);
+            meshBuilder.add_vertex(x, y, z, u, v);
+        }
+    }
+
+    // add bottom vertex
+    auto v1 = meshBuilder.add_vertex(0.0, -1.0, 0.0, uvHorizMid, uvBottom);
+
+    // add top / bottom triangles
+    for (int i = 0; i < n_slices; ++i) {
+        auto i0 = i + 1;
+        auto i1 = (i + 1) % n_slices + 1;
+        meshBuilder.add_triangle(0, i1, i0);
+        i0 = i + n_slices * (n_stacks - 2) + 1;
+        i1 = (i + 1) % n_slices + n_slices * (n_stacks - 2) + 1;
+        meshBuilder.add_triangle(v1, i0, i1);
+    }
+
+    // add quads per stack / slice
+    for (int j = 0; j < n_stacks - 2; j++) {
+        auto j0 = j * n_slices + 1;
+        auto j1 = (j + 1) * n_slices + 1;
+        for (int i = 0; i < n_slices; i++) {
+            auto i0 = j0 + i;
+            auto i1 = j0 + (i + 1) % n_slices;
+            auto i2 = j1 + (i + 1) % n_slices;
+            auto i3 = j1 + i;
+            meshBuilder.add_quad(i0, i1, i2, i3);
+        }
+    }
+
+    return meshBuilder.build();
+}
+
 void Renderer::ComputeMesh() {
     for (int eye = 0; eye < 2; ++eye) {
         float uvLeft, uvTop, uvRight, uvBottom;
@@ -368,6 +425,10 @@ void Renderer::ComputeMesh() {
 
                 break;
             }
+
+            case InputVideoMode::EQUIRECT_180:
+                eyeMeshes[eye] = BuildUvSphereMesh(20, 20, -M_PI * 0.5f, M_PI * 0.5f, uvLeft, uvTop, uvRight, uvBottom);
+                break;
 
             default:
                 std::unique_ptr<GLfloat[]> pos{new GLfloat[]{
