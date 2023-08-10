@@ -27,6 +27,8 @@
 #define LOG_TAG "VRVideoPlayerR"
 
 constexpr uint64_t kPredictionTimeWithoutVsyncNanos = 50000000UL;
+constexpr float kzNear = 0.1f;
+constexpr float kzFar = 2.0f;
 
 constexpr const char *kVertexShader = R"glsl(#version 300 es
 uniform mat4 u_MVP;
@@ -75,7 +77,8 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
     Cardboard_initializeAndroid(vm, javaContextObj);
     cardboardHeadTracker = CardboardHeadTrackerPointer(CardboardHeadTracker_create());
 
-    SetOptions(InputVideoLayout::STEREO_HORIZ, InputVideoMode::EQUIRECT_180, OutputMode::MONO_LEFT);
+    SetOptions(InputVideoLayout::STEREO_HORIZ, InputVideoMode::EQUIRECT_180,
+               OutputMode::CARDBOARD_STEREO);
 }
 
 Renderer::~Renderer() {
@@ -182,20 +185,6 @@ void Renderer::DrawFrame() {
 
     UpdatePose();
 
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_SCISSOR_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClear(GL_COLOR_BUFFER_BIT);
-    CHECK_GL_ERROR("Params");
-
-    // bindTexture(videoTexture);
-    bindVideoTexture(videoTexture);
-    CHECK_GL_ERROR("Bind texture");
-
-    glUseProgram(program);
-
     int minEye, maxEye;
     GLsizei eyeWidth;
     switch (outputMode) {
@@ -219,6 +208,24 @@ void Renderer::DrawFrame() {
     }
 
     bool isMono = minEye == maxEye;
+
+    if (outputMode == OutputMode::CARDBOARD_STEREO) {
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    }
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_SCISSOR_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glClear(GL_COLOR_BUFFER_BIT);
+    CHECK_GL_ERROR("Params");
+
+    // bindTexture(videoTexture);
+    bindVideoTexture(videoTexture);
+    CHECK_GL_ERROR("Bind texture");
+
+    glUseProgram(program);
     for (int eye = minEye; eye <= maxEye; ++eye) {
         glViewport((eye - minEye) * eyeWidth, 0, eyeWidth, screenHeight);
 
@@ -226,6 +233,14 @@ void Renderer::DrawFrame() {
         glUniformMatrix4fv(programParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
 
         eyeMeshes[eye].Render(programParamPosition, programParamUV);
+    }
+
+    if (outputMode == OutputMode::CARDBOARD_STEREO) {
+        CardboardDistortionRenderer_renderEyeToDisplay(
+                cardboardDistortionRenderer.get(), 0,
+                0, 0, screenWidth, screenHeight,
+                &cardboardEyeTextureDescriptions[0], &cardboardEyeTextureDescriptions[1]
+        );
     }
 
     ++frameCount;
@@ -237,7 +252,54 @@ bool Renderer::UpdateDeviceParams() {
         return true;
     }
 
+    // Get saved device parameters
+    if (outputMode == OutputMode::CARDBOARD_STEREO) {
+        uint8_t *cardboardQrCode;
+        int size;
+        CardboardQrCode_getSavedDeviceParams(&cardboardQrCode, &size);
+
+        // If there are no parameters saved yet, returns false.
+        if (size == 0) {
+            LOG_ERROR("Cardboard params not available yet");
+            return false;
+        }
+
+        cardboardLensDistortion = CardboardLensDistortionPointer(
+                CardboardLensDistortion_create(cardboardQrCode, size, screenWidth, screenHeight)
+        );
+
+        CardboardQrCode_destroy(cardboardQrCode);
+    }
+
     GlSetup();
+
+    if (outputMode == OutputMode::CARDBOARD_STEREO) {
+        const CardboardOpenGlEsDistortionRendererConfig config{kGlTexture2D};
+        cardboardDistortionRenderer = CardboardDistortionRendererPointer(
+                CardboardOpenGlEs2DistortionRenderer_create(&config)
+        );
+
+        CardboardMesh leftMesh;
+        CardboardMesh rightMesh;
+        CardboardLensDistortion_getDistortionMesh(cardboardLensDistortion.get(), kLeft, &leftMesh);
+        CardboardLensDistortion_getDistortionMesh(cardboardLensDistortion.get(), kRight,
+                                                  &rightMesh);
+
+        CardboardDistortionRenderer_setMesh(cardboardDistortionRenderer.get(), &leftMesh, kLeft);
+        CardboardDistortionRenderer_setMesh(cardboardDistortionRenderer.get(), &rightMesh, kRight);
+
+        // Get eye matrices
+        CardboardLensDistortion_getEyeFromHeadMatrix(cardboardLensDistortion.get(), kLeft,
+                                                     glm::value_ptr(cardboardEyeMatrices[0]));
+        CardboardLensDistortion_getEyeFromHeadMatrix(cardboardLensDistortion.get(), kRight,
+                                                     glm::value_ptr(cardboardEyeMatrices[1]));
+        CardboardLensDistortion_getProjectionMatrix(cardboardLensDistortion.get(), kRight, kzNear,
+                                                    kzFar,
+                                                    glm::value_ptr(cardboardProjectionMatrices[0]));
+        CardboardLensDistortion_getProjectionMatrix(cardboardLensDistortion.get(), kRight, kzNear,
+                                                    kzFar,
+                                                    glm::value_ptr(cardboardProjectionMatrices[1]));
+    }
 
     screenParamsChanged = false;
     deviceParamsChanged = false;
@@ -263,26 +325,38 @@ void Renderer::GlSetup() {
     CHECK_GL_ERROR("Create depth buffer");
     */
 
-
-    /*
     // Create render texture.
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glGenTextures(1, &renderTexture);
+    glBindTexture(GL_TEXTURE_2D, renderTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                 nullptr);
 
     // Create render target.
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-                              depthRenderBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+    // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
     CHECK_GL_ERROR("Create render buffer");
-    */
+
+    cardboardEyeTextureDescriptions[0] = {
+            .texture = renderTexture,
+            .left_u = 0.0f,
+            .right_u = 0.5f,
+            .top_v = 1.0f,
+            .bottom_v = 0.0f
+    };
+    cardboardEyeTextureDescriptions[1] = {
+            .texture = renderTexture,
+            .left_u = 0.5f,
+            .right_u = 1.0f,
+            .top_v = 1.0f,
+            .bottom_v = 0.0f
+    };
 
     CHECK_GL_ERROR("GlSetup");
 }
@@ -297,12 +371,10 @@ void Renderer::GlTeardown() {
     glDeleteRenderbuffers(1, &depthRenderBuffer);
     depthRenderBuffer = 0;
     */
-    /*
     glDeleteFramebuffers(1, &framebuffer);
     framebuffer = 0;
-    glDeleteTextures(1, &texture);
-    texture = 0;
-    */
+    glDeleteTextures(1, &renderTexture);
+    renderTexture = 0;
 
     CHECK_GL_ERROR("GlTeardown");
 }
@@ -314,19 +386,33 @@ glm::mat4 Renderer::BuildMVPMatrix(int eye) {
     }
 
     auto aspect = (float) screenWidth / (float) screenHeight;
-    glm::mat4 projection = glm::perspective(glm::radians(90.0f) / aspect, aspect, 0.1f, 10.0f);
+    glm::mat4 projection;
+    glm::mat4 view;
 
-    /*
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, angle * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
-    */
+    switch (outputMode) {
+        case OutputMode::MONO_LEFT:
+        case OutputMode::MONO_RIGHT:
+            projection = glm::perspective(glm::radians(90.0f) / aspect, aspect, kzNear, kzFar);
+            view = viewMatrix;
+            break;
 
-    return projection * viewMatrix;
+        case OutputMode::CARDBOARD_STEREO:
+            view = cardboardEyeMatrices[eye] * viewMatrix;
+            projection = cardboardProjectionMatrices[eye];
+            break;
+
+        default:
+            assert(false);
+    }
+
+    return projection * view;
 }
 
 void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
                           OutputMode outputMode) {
     LOG_DEBUG("SetOptions(%d, %d, %d)", layout, inputMode, outputMode);
+    deviceParamsChanged = outputMode != this->outputMode;
+
     this->inputVideoLayout = layout;
     this->inputVideoMode = inputMode;
     this->outputMode = outputMode;

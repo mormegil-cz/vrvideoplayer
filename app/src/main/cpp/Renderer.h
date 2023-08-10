@@ -68,30 +68,38 @@ private:
     jobject javaVideoTexturePlayer;
 
     CardboardHeadTrackerPointer cardboardHeadTracker;
+    CardboardLensDistortionPointer cardboardLensDistortion;
+    CardboardDistortionRendererPointer cardboardDistortionRenderer;
 
     bool screenParamsChanged;
     bool deviceParamsChanged;
     int screenWidth;
+
     int screenHeight;
 
     bool glInitialized;
-
     InputVideoLayout inputVideoLayout;
     InputVideoMode inputVideoMode;
+
     OutputMode outputMode;
 
     unsigned long frameCount;
-
     GLuint program;
     GLint programParamPosition;
     GLint programParamUV;
-    GLint programParamMVPMatrix;
 
+    GLint programParamMVPMatrix;
     GLuint videoTexture;
+    GLuint renderTexture;
+
+    GLuint framebuffer;
 
     std::array<TexturedMesh, 2> eyeMeshes;
 
     glm::mat4 viewMatrix;
+    std::array<glm::mat4, 2> cardboardEyeMatrices;
+    std::array<glm::mat4, 2> cardboardProjectionMatrices;
+    std::array<CardboardEyeTextureDescription, 2> cardboardEyeTextureDescriptions;
 
     bool UpdateDeviceParams();
 
