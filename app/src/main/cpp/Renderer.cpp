@@ -192,18 +192,22 @@ void Renderer::DrawFrame() {
     glUseProgram(program);
 
     int minEye, maxEye;
+    GLsizei eyeWidth;
     switch (outputMode) {
         case OutputMode::MONO_LEFT:
             minEye = 0;
             maxEye = 0;
+            eyeWidth = screenWidth;
             break;
         case OutputMode::MONO_RIGHT:
             minEye = 1;
             maxEye = 1;
+            eyeWidth = screenWidth;
             break;
         case OutputMode::CARDBOARD_STEREO:
             minEye = 0;
             maxEye = 1;
+            eyeWidth = screenWidth / 2;
             break;
         default:
             assert(false);
@@ -211,7 +215,7 @@ void Renderer::DrawFrame() {
 
     bool isMono = minEye == maxEye;
     for (int eye = minEye; eye <= maxEye; ++eye) {
-        glViewport(0, 0, screenWidth, screenHeight);
+        glViewport((eye - minEye) * eyeWidth, 0, eyeWidth, screenHeight);
 
         auto mvpMatrix = BuildMVPMatrix(eye);
         glUniformMatrix4fv(programParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
@@ -299,6 +303,11 @@ void Renderer::GlTeardown() {
 }
 
 glm::mat4 Renderer::BuildMVPMatrix(int eye) {
+    if (inputVideoMode == InputVideoMode::PLAIN_FOV) {
+        // straight full-screen playback
+        return glm::mat4(1.0f);
+    }
+
     auto aspect = (float) screenWidth / (float) screenHeight;
     glm::mat4 projection = glm::perspective(glm::radians(90.0f) / aspect, aspect, 0.1f, 10.0f);
 
@@ -313,14 +322,6 @@ glm::mat4 Renderer::BuildMVPMatrix(int eye) {
     );
 
     glm::mat4 view = toMat4(headOrientationQuat);
-
-    /*
-    glm::mat4 view = glm::lookAt(
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 0.0f, -1.0f),
-            glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-    */
 
     /*
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -426,10 +427,10 @@ void Renderer::ComputeMesh() {
         switch (inputVideoMode) {
             case InputVideoMode::PLAIN_FOV: {
                 std::unique_ptr<GLfloat[]> pos{new GLfloat[12]{
-                        -1.0f, +1.0f, -1.0f,
-                        +1.0f, +1.0f, -1.0f,
-                        +1.0f, -1.0f, -1.0f,
-                        -1.0f, -1.0f, -1.0f
+                        -1.0f, +1.0f, -0.5f,
+                        +1.0f, +1.0f, -0.5f,
+                        +1.0f, -1.0f, -0.5f,
+                        -1.0f, -1.0f, -0.5f
                 }};
                 std::unique_ptr<GLfloat[]> uv{new GLfloat[8]{
                         uvLeft, uvTop,
@@ -454,12 +455,12 @@ void Renderer::ComputeMesh() {
             }
 
             case InputVideoMode::EQUIRECT_180:
-                eyeMeshes[eye] = BuildUvSphereMesh(20, 20, M_PI_2, M_PI * 1.5f, uvLeft, uvTop,
+                eyeMeshes[eye] = BuildUvSphereMesh(30, 30, M_PI_2, M_PI * 1.5f, uvLeft, uvTop,
                                                    uvRight, uvBottom);
                 break;
 
             case InputVideoMode::EQUIRECT_360:
-                eyeMeshes[eye] = BuildUvSphereMesh(20, 20, 0, M_2_PI, uvLeft, uvTop,
+                eyeMeshes[eye] = BuildUvSphereMesh(40, 30, 0, M_2_PI, uvLeft, uvTop,
                                                    uvRight, uvBottom);
                 break;
 
