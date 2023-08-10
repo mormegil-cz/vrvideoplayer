@@ -55,11 +55,14 @@ void main() {
 Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
                    jobject javaVideoTexturePlayerObj)
         : glInitialized(false),
+          screenParamsChanged(false),
+          deviceParamsChanged(false),
           frameCount(0),
           inputVideoMode{},
           inputVideoLayout{},
           outputMode{},
           eyeMeshes{},
+          viewMatrix{},
           cardboardHeadTracker{} {
     LOG_DEBUG("Renderer instance created");
 
@@ -176,6 +179,8 @@ void Renderer::DrawFrame() {
     if (!UpdateDeviceParams()) {
         return;
     }
+
+    UpdatePose();
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -311,32 +316,26 @@ glm::mat4 Renderer::BuildMVPMatrix(int eye) {
     auto aspect = (float) screenWidth / (float) screenHeight;
     glm::mat4 projection = glm::perspective(glm::radians(90.0f) / aspect, aspect, 0.1f, 10.0f);
 
-    glm::quat headOrientationQuat;
-    glm::vec3 headPosition;
-    CardboardHeadTracker_getPose(
-            cardboardHeadTracker.get(),
-            static_cast<int64_t>(GetBootTimeNano() + kPredictionTimeWithoutVsyncNanos),
-            kLandscapeLeft,
-            glm::value_ptr(headPosition),
-            glm::value_ptr(headOrientationQuat)
-    );
-
-    glm::mat4 view = toMat4(headOrientationQuat);
-
     /*
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, angle * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
     */
 
-    return projection * view;
+    return projection * viewMatrix;
 }
 
 void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
                           OutputMode outputMode) {
+    LOG_DEBUG("SetOptions(%d, %d, %d)", layout, inputMode, outputMode);
     this->inputVideoLayout = layout;
     this->inputVideoMode = inputMode;
     this->outputMode = outputMode;
     ComputeMesh();
+}
+
+void Renderer::ScanCardboardQr() {
+    LOG_DEBUG("ScanCardboardQr");
+    CardboardQrCode_scanQrCodeAndSaveDeviceParams();
 }
 
 static TexturedMesh
@@ -504,4 +503,19 @@ void Renderer::ComputeMesh() {
                 break;
         }
     }
+}
+
+void Renderer::UpdatePose() {
+    glm::quat headOrientationQuat;
+    glm::vec3 headPosition;
+    CardboardHeadTracker_getPose(
+            cardboardHeadTracker.get(),
+            static_cast<int64_t>(GetBootTimeNano() + kPredictionTimeWithoutVsyncNanos),
+            kLandscapeLeft,
+            glm::value_ptr(headPosition),
+            glm::value_ptr(headOrientationQuat)
+    );
+
+    // viewMatrix = glm::translate(toMat4(headOrientationQuat), headPosition);
+    viewMatrix = toMat4(headOrientationQuat);
 }

@@ -51,6 +51,8 @@ public:
     void SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
                     OutputMode outputMode);
 
+    void ScanCardboardQr();
+
     void SetScreenParams(int width, int height);
 
     void DrawFrame();
@@ -89,6 +91,8 @@ private:
 
     std::array<TexturedMesh, 2> eyeMeshes;
 
+    glm::mat4 viewMatrix;
+
     bool UpdateDeviceParams();
 
     void GlSetup();
@@ -96,6 +100,8 @@ private:
     void GlTeardown();
 
     void ComputeMesh();
+
+    void UpdatePose();
 
     glm::mat4 BuildMVPMatrix(int eye);
 };

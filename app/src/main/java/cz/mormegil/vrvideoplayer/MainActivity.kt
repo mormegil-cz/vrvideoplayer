@@ -61,6 +61,10 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
+    fun showSettings(view: View) {
+        NativeLibrary.nativeScanCardboardQr(nativeApp);
+    }
+
     private fun doResume() {
         glView.onResume()
         NativeLibrary.nativeOnResume(nativeApp)
@@ -103,6 +107,4 @@ class MainActivity : AppCompatActivity() {
             NativeLibrary.nativeDrawFrame(nativeApp)
         }
     }
-
-    fun showSettings(view: View) {}
 }
