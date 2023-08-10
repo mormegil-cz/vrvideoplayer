@@ -4,9 +4,12 @@ import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import android.widget.RelativeLayout
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import cz.mormegil.vrvideoplayer.databinding.ActivityMainBinding
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -55,6 +58,21 @@ class MainActivity : AppCompatActivity() {
         videoTexturePlayer = VideoTexturePlayer(this, videoUri)
 
         nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, binding.root).let { controller ->
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+
+        // Forces screen to max brightness.
+        val layout = window.attributes
+        layout.screenBrightness = 1f
+        window.attributes = layout
+
+        // Prevents screen from dimming/locking.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     fun closePlayer(view: View) {
