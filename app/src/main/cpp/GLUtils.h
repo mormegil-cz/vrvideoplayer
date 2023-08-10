@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <GLES2/gl2.h>
+#include <cardboard.h>
 
 GLuint LoadGLShader(GLenum type, const char *shader_source);
 
@@ -18,5 +19,14 @@ void CheckGlError(const char *file, int line, const char *label);
 bool LoadPngFromAssetManager(JNIEnv *env, jobject java_asset_mgr, int target, const std::string &path);
 
 bool InitVideoTexturePlayback(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint textureName);
+
+uint64_t GetBootTimeNano();
+
+struct CardboardHeadTrackerDeleter
+{
+    void operator()(CardboardHeadTracker *p) const { CardboardHeadTracker_destroy(p); }
+};
+
+using CardboardHeadTrackerPointer = std::unique_ptr<CardboardHeadTracker, CardboardHeadTrackerDeleter>;
 
 #endif //VR_VIDEO_PLAYER_GLUTILS_H

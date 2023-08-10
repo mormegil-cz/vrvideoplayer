@@ -11,8 +11,6 @@ cmake_minimum_required(VERSION 3.22.1)
 # build script scope).
 project("vrvideoplayer")
 
-#set(ANDROID_NDK_INCLUDES "" CACHE STRING "Path to Android NDK header files")
-
 # Standard Android dependencies
 find_library(android-lib android)
 find_library(GLESv2-lib GLESv2)
@@ -40,6 +38,16 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         GLUtils.cpp
         )
 
+add_library( cardboardSdk
+        SHARED
+        IMPORTED )
+set_target_properties(
+        cardboardSdk
+        PROPERTIES IMPORTED_LOCATION
+        ${CMAKE_CURRENT_LIST_DIR}/../../../libs/cardboard-sdk/libs/${ANDROID_ABI}/libGfxPluginCardboard.so )
+
+include_directories( ${CMAKE_CURRENT_LIST_DIR}/../../../libs/cardboard-sdk/include/ )
+
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
@@ -48,9 +56,5 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         ${GLESv2-lib}
         ${GLESv3-lib}
         ${log-lib}
+        cardboardSdk
         )
-
-#
-#target_include_directories(${CMAKE_PROJECT_NAME}
-#    PRIVATE ${ANDROID_NDK_INCLUDES}
-#)

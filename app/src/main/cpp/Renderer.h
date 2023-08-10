@@ -3,16 +3,19 @@
 
 #include <array>
 
-#include <pthread.h>
 #include <EGL/egl.h>
 #include <GLES/gl.h>
 
+// TODO: Remove asset manager?
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
+
+#include <cardboard.h>
 
 #include "glm/mat4x4.hpp"
 
 #include "TexturedMesh.h"
+#include "GLUtils.h"
 
 enum class InputVideoLayout {
     MONO,
@@ -58,8 +61,11 @@ public:
 
 private:
     jobject javaContext;
+    // TODO: Remove asset manager?
     jobject javaAssetMgr;
     jobject javaVideoTexturePlayer;
+
+    CardboardHeadTrackerPointer cardboardHeadTracker;
 
     bool screenParamsChanged;
     bool deviceParamsChanged;
@@ -91,7 +97,7 @@ private:
 
     void ComputeMesh();
 
-    glm::mat4 BuildMVPMatrix();
+    glm::mat4 BuildMVPMatrix(int eye);
 };
 
 #endif //VRVIDEOPLAYER_RENDERER_H

@@ -12,10 +12,13 @@
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
+#include "glm/gtx/quaternion.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/scalar_constants.hpp"
 #include "glm/gtc/type_ptr.hpp"
+
+#include <cardboard.h>
 
 #include "Renderer.h"
 #include "GLUtils.h"
@@ -23,6 +26,7 @@
 
 #define LOG_TAG "VRVideoPlayerR"
 
+constexpr uint64_t kPredictionTimeWithoutVsyncNanos = 50000000UL;
 
 constexpr const char *kVertexShader = R"glsl(#version 300 es
 uniform mat4 u_MVP;
@@ -52,10 +56,11 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
                    jobject javaVideoTexturePlayerObj)
         : glInitialized(false),
           frameCount(0),
-          inputVideoMode(InputVideoMode::EQUIRECT_180),
-          inputVideoLayout(InputVideoLayout::STEREO_HORIZ),
-          outputMode(OutputMode::MONO_LEFT),
-          eyeMeshes{} {
+          inputVideoMode{},
+          inputVideoLayout{},
+          outputMode{},
+          eyeMeshes{},
+          cardboardHeadTracker{} {
     LOG_DEBUG("Renderer instance created");
 
     JNIEnv *env;
@@ -63,6 +68,9 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
     javaContext = env->NewGlobalRef(javaContextObj);
     javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
     javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
+
+    Cardboard_initializeAndroid(vm, javaContextObj);
+    cardboardHeadTracker = CardboardHeadTrackerPointer(CardboardHeadTracker_create());
 
     SetOptions(InputVideoLayout::STEREO_HORIZ, InputVideoMode::EQUIRECT_180, OutputMode::MONO_LEFT);
 }
@@ -75,6 +83,8 @@ Renderer::~Renderer() {
 
 void Renderer::OnPause() {
     LOG_DEBUG("OnPause after %lu frames", frameCount);
+
+    CardboardHeadTracker_pause(cardboardHeadTracker.get());
 }
 
 void Renderer::OnResume() {
@@ -84,6 +94,8 @@ void Renderer::OnResume() {
 
     // Parameters may have changed.
     deviceParamsChanged = true;
+
+    CardboardHeadTracker_resume(cardboardHeadTracker.get());
 }
 
 void Renderer::SetScreenParams(int width, int height) {
@@ -201,7 +213,7 @@ void Renderer::DrawFrame() {
     for (int eye = minEye; eye <= maxEye; ++eye) {
         glViewport(0, 0, screenWidth, screenHeight);
 
-        auto mvpMatrix = BuildMVPMatrix();
+        auto mvpMatrix = BuildMVPMatrix(eye);
         glUniformMatrix4fv(programParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
 
         eyeMeshes[eye].Render(programParamPosition, programParamUV);
@@ -286,15 +298,29 @@ void Renderer::GlTeardown() {
     CHECK_GL_ERROR("GlTeardown");
 }
 
-glm::mat4 Renderer::BuildMVPMatrix() {
+glm::mat4 Renderer::BuildMVPMatrix(int eye) {
     auto aspect = (float) screenWidth / (float) screenHeight;
     glm::mat4 projection = glm::perspective(glm::radians(90.0f) / aspect, aspect, 0.1f, 10.0f);
 
+    glm::quat headOrientationQuat;
+    glm::vec3 headPosition;
+    CardboardHeadTracker_getPose(
+            cardboardHeadTracker.get(),
+            static_cast<int64_t>(GetBootTimeNano() + kPredictionTimeWithoutVsyncNanos),
+            kLandscapeLeft,
+            glm::value_ptr(headPosition),
+            glm::value_ptr(headOrientationQuat)
+    );
+
+    glm::mat4 view = toMat4(headOrientationQuat);
+
+    /*
     glm::mat4 view = glm::lookAt(
             glm::vec3(0.0f, 0.0f, 0.0f),
             glm::vec3(0.0f, 0.0f, -1.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
     );
+    */
 
     /*
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));

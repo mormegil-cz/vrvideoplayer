@@ -10,6 +10,8 @@
 #include <string>
 #include <utility>
 
+#include <ctime>
+
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
@@ -64,6 +66,7 @@ void CheckGlError(const char *file, int line, const char *label) {
     }
 }
 
+// TODO: Delete?
 bool LoadPngFromAssetManager(JNIEnv *env, jobject java_asset_mgr, int target,
                              const std::string &path) {
     jclass bitmap_factory_class =
@@ -124,4 +127,12 @@ bool InitVideoTexturePlayback(JNIEnv *env, jobject javaVideoTexturePlayer, GLuin
     }
 
     return true;
+}
+
+static constexpr uint64_t kNanosInSeconds = 1000000000;
+
+uint64_t GetBootTimeNano() {
+    struct timespec res{};
+    clock_gettime(CLOCK_BOOTTIME, &res);
+    return (res.tv_sec * kNanosInSeconds) + res.tv_nsec;
 }
