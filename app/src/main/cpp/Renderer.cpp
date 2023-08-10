@@ -288,7 +288,7 @@ void Renderer::GlTeardown() {
 
 glm::mat4 Renderer::BuildMVPMatrix() {
     auto aspect = (float) screenWidth / (float) screenHeight;
-    glm::mat4 projection = glm::perspective(glm::radians(90.0f), aspect, 0.1f, 10.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(90.0f) / aspect, aspect, 0.1f, 10.0f);
 
     glm::mat4 view = glm::lookAt(
             glm::vec3(0.0f, 0.0f, 0.0f),
@@ -300,9 +300,8 @@ glm::mat4 Renderer::BuildMVPMatrix() {
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, angle * 0.25f, glm::vec3(1.0f, 0.0f, 0.0f));
     */
-    glm::mat4 model = glm::mat4(1.0f);
 
-    return projection * view * model;
+    return projection * view;
 }
 
 void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
