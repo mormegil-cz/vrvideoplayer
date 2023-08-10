@@ -24,20 +24,20 @@ enum class InputVideoLayout {
 };
 
 enum class InputVideoMode {
-    PLAIN_FOV,
-    EQUIRECT_180,
-    EQUIRECT_360,
-    CUBE_MAP,
-    EQUIANG_CUBE_MAP,
-    PYRAMID,
-    PANORAMA_180,
-    PANORAMA_360,
+    PLAIN_FOV = 1,
+    EQUIRECT_180 = 2,
+    EQUIRECT_360 = 3,
+    CUBE_MAP = 4,
+    EQUIANG_CUBE_MAP = 5,
+    PYRAMID = 6,
+    PANORAMA_180 = 7,
+    PANORAMA_360 = 8,
 };
 
 enum class OutputMode {
-    MONO_LEFT,
-    MONO_RIGHT,
-    CARDBOARD_STEREO,
+    MONO_LEFT = 1,
+    MONO_RIGHT = 2,
+    CARDBOARD_STEREO = 3,
 };
 
 class Renderer {
@@ -50,6 +50,8 @@ public:
 
     void SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
                     OutputMode outputMode);
+
+    void SetOutputMode(OutputMode mode);
 
     void ScanCardboardQr();
 

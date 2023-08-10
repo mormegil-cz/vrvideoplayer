@@ -30,7 +30,7 @@
         <ImageButton
             style="@style/UiButton"
             android:id="@+id/ui_back_button"
-            android:contentDescription="Close"
+            android:contentDescription="@string/close"
             android:src="@drawable/cardboard_oss_quantum_ic_close_white_24"
             android:layout_gravity="start|top"
             android:onClick="closePlayer"/>
@@ -45,7 +45,7 @@
         <ImageButton
             style="@style/UiButton"
             android:id="@+id/ui_settings_button"
-            android:contentDescription="Settings"
+            android:contentDescription="@string/settings"
             android:src="@drawable/cardboard_oss_quantum_ic_settings_white_24"
             android:layout_gravity="end|top"
             android:onClick="showSettings"/>

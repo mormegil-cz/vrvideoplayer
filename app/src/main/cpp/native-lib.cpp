@@ -99,3 +99,13 @@ Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeDrawFrame(
     // LOG_DEBUG("nativeDrawFrame");
     fromJava(native_app)->DrawFrame();
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeSetOutputMode(
+        JNIEnv * /* jenv */,
+        jobject /* this */,
+        jlong native_app,
+        jint output_mode_int) {
+    LOG_DEBUG("nativeScanCardboardQr");
+    fromJava(native_app)->SetOutputMode(static_cast<OutputMode>(output_mode_int));
+}

@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">VR Video Player</string>
+    <string name="close">Close</string>
+    <string name="settings">Settings</string>
+    <string name="switch_viewer">Switch Cardboard viewer</string>
+    <string name="output_mode_mono_left_eye">Monoscopic (L)</string>
+    <string name="output_mode_mono_right_eye">Monoscopic (R)</string>
+    <string name="output_mode_cardboard">Cardboard</string>
 </resources>

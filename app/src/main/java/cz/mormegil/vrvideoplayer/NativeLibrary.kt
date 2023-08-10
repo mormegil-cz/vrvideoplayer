@@ -16,9 +16,17 @@ object NativeLibrary {
     external fun nativeOnSurfaceCreated(nativeApp: Long)
     external fun nativeSetScreenParams(nativeApp: Long, width: Int, height: Int)
     external fun nativeScanCardboardQr(nativeApp: Long);
+    external fun nativeSetOutputMode(nativeApp: Long, outputMode: Int);
     external fun nativeDrawFrame(nativeApp: Long);
 
     init {
         System.loadLibrary("vrvideoplayer")
     }
+}
+
+enum class OutputMode {
+    None,
+    MonoLeft,
+    MonoRight,
+    CardboardStereo,
 }

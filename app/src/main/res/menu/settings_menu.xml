@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <group>
+        <item
+            android:id="@+id/output_mode_mono_left_eye"
+            android:title="@string/output_mode_mono_left_eye" />
+        <item
+            android:id="@+id/output_mode_mono_right_eye"
+            android:title="@string/output_mode_mono_right_eye" />
+        <item
+            android:id="@+id/output_mode_cardboard"
+            android:title="@string/output_mode_cardboard" />
+    </group>
+    <item android:id="@+id/switch_viewer"
+        android:title="@string/switch_viewer" />
+</menu>

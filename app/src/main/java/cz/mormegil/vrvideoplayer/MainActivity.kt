@@ -1,12 +1,16 @@
 package cz.mormegil.vrvideoplayer
 
+import android.icu.util.Output
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -80,7 +84,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showSettings(view: View) {
-        NativeLibrary.nativeScanCardboardQr(nativeApp);
+        val popup = PopupMenu(this, view)
+        val inflater: MenuInflater = popup.menuInflater
+        inflater.inflate(R.menu.settings_menu, popup.menu)
+        popup.setOnMenuItemClickListener { item: MenuItem ->
+            when (item.itemId) {
+                R.id.switch_viewer -> {
+                    NativeLibrary.nativeScanCardboardQr(nativeApp)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.output_mode_mono_left_eye -> {
+                    NativeLibrary.nativeSetOutputMode(nativeApp, OutputMode.MonoLeft.ordinal);
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.output_mode_mono_right_eye -> {
+                    NativeLibrary.nativeSetOutputMode(nativeApp, OutputMode.MonoRight.ordinal);
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.output_mode_cardboard -> {
+                    NativeLibrary.nativeSetOutputMode(nativeApp, OutputMode.CardboardStereo.ordinal);
+                    return@setOnMenuItemClickListener true
+                }
+
+                else -> {
+                    return@setOnMenuItemClickListener false
+                }
+            }
+        }
+        popup.show()
     }
 
     private fun doResume() {

@@ -8,6 +8,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.opengl.GLES20
 import android.os.Build
+import android.provider.MediaStore.Audio.Media
 import android.util.Log
 import android.view.Surface
 import java.util.concurrent.atomic.AtomicBoolean
@@ -76,7 +77,10 @@ class VideoTexturePlayer(private val context: Context, private val videoSourceUr
     fun seek(relSeek: Int) {
         val mp = mediaPlayer ?: return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mp.seekTo((mp.currentPosition + relSeek).toLong(), MediaPlayer.SEEK_CLOSEST);
+            mp.seekTo(
+                (mp.currentPosition + relSeek).toLong(),
+                if (relSeek >= 0) MediaPlayer.SEEK_NEXT_SYNC else MediaPlayer.SEEK_PREVIOUS_SYNC
+            );
         } else {
             mp.seekTo(mp.currentPosition + relSeek);
         }

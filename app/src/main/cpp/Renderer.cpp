@@ -207,10 +207,10 @@ void Renderer::DrawFrame() {
             assert(false);
     }
 
-    bool isMono = minEye == maxEye;
-
     if (outputMode == OutputMode::CARDBOARD_STEREO) {
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    } else {
+        glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
     }
 
     glDisable(GL_DEPTH_TEST);
@@ -221,7 +221,6 @@ void Renderer::DrawFrame() {
     glClear(GL_COLOR_BUFFER_BIT);
     CHECK_GL_ERROR("Params");
 
-    // bindTexture(videoTexture);
     bindVideoTexture(videoTexture);
     CHECK_GL_ERROR("Bind texture");
 
@@ -417,6 +416,11 @@ void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
     this->inputVideoMode = inputMode;
     this->outputMode = outputMode;
     ComputeMesh();
+}
+
+void Renderer::SetOutputMode(OutputMode mode) {
+    LOG_DEBUG("SetOutputMode(%d)", mode);
+    SetOptions(inputVideoLayout, inputVideoMode, mode);
 }
 
 void Renderer::ScanCardboardQr() {
