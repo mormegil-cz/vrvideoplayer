@@ -3,6 +3,8 @@ package cz.mormegil.vrvideoplayer
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import cz.mormegil.vrvideoplayer.databinding.ActivityMainBinding
@@ -18,6 +20,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var glView: GLSurfaceView
     private lateinit var videoTexturePlayer: VideoTexturePlayer
+    private lateinit var uiAlignmentMarker: RelativeLayout
 
     private var nativeApp: Long = 0
 
@@ -37,7 +40,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        glView = binding.surfaceview
+        uiAlignmentMarker = binding.uiAlignmentMarker
+        // TODO: Show/hide alignment marker according to output mode
+
+        glView = binding.surfaceView
         glView.setEGLContextClientVersion(2)
         val renderer = Renderer()
         glView.setRenderer(renderer)
@@ -49,6 +55,10 @@ class MainActivity : AppCompatActivity() {
         videoTexturePlayer = VideoTexturePlayer(this, videoUri)
 
         nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
+    }
+
+    fun closePlayer(view: View) {
+        finish()
     }
 
     private fun doResume() {
@@ -93,4 +103,6 @@ class MainActivity : AppCompatActivity() {
             NativeLibrary.nativeDrawFrame(nativeApp)
         }
     }
+
+    fun showSettings(view: View) {}
 }
