@@ -77,8 +77,7 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
     Cardboard_initializeAndroid(vm, javaContextObj);
     cardboardHeadTracker = CardboardHeadTrackerPointer(CardboardHeadTracker_create());
 
-    SetOptions(InputVideoLayout::STEREO_HORIZ, InputVideoMode::EQUIRECT_180,
-               OutputMode::CARDBOARD_STEREO);
+    SetOptions(InputVideoLayout::MONO, InputVideoMode::PLAIN_FOV, OutputMode::MONO_LEFT);
 }
 
 Renderer::~Renderer() {
@@ -410,17 +409,12 @@ glm::mat4 Renderer::BuildMVPMatrix(int eye) {
 void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
                           OutputMode outputMode) {
     LOG_DEBUG("SetOptions(%d, %d, %d)", layout, inputMode, outputMode);
-    deviceParamsChanged = outputMode != this->outputMode;
+    deviceParamsChanged |= outputMode != this->outputMode;
 
     this->inputVideoLayout = layout;
     this->inputVideoMode = inputMode;
     this->outputMode = outputMode;
     ComputeMesh();
-}
-
-void Renderer::SetOutputMode(OutputMode mode) {
-    LOG_DEBUG("SetOutputMode(%d)", mode);
-    SetOptions(inputVideoLayout, inputVideoMode, mode);
 }
 
 void Renderer::ScanCardboardQr() {
@@ -435,6 +429,7 @@ BuildUvSphereMesh(int n_slices, int n_stacks, float minTheta, float maxTheta, fl
 
     float uvWidth = uvRight - uvLeft;
     float uvHeight = uvBottom - uvTop;
+    float thetaRange = maxTheta - minTheta;
 
     // generate vertices per stack / slice
     for (int i = 0; i <= n_stacks; i++) {
@@ -444,7 +439,7 @@ BuildUvSphereMesh(int n_slices, int n_stacks, float minTheta, float maxTheta, fl
 
         for (int j = 0; j <= n_slices; j++) {
             auto uFrac = float(j) / float(n_slices);
-            auto theta = -(minTheta + (maxTheta - minTheta) * uFrac);
+            auto theta = -(minTheta + thetaRange * uFrac);
             auto u = uFrac * uvWidth + uvLeft;
             auto x = std::sinf(phi) * std::sinf(theta);
             auto y = std::cosf(phi);
@@ -478,6 +473,31 @@ BuildUvSphereMesh(int n_slices, int n_stacks, float minTheta, float maxTheta, fl
                 // otherwise, quads
                 meshBuilder.add_quad(i0, i1, i2, i3);
             }
+        }
+    }
+
+    return meshBuilder.build();
+}
+
+static TexturedMesh
+BuildCylindricalMesh(int n_slices, float minTheta, float maxTheta, float uvLeft, float uvTop,
+                     float uvRight, float uvBottom) {
+    TexturedMesh::Builder meshBuilder;
+
+    float uvWidth = uvRight - uvLeft;
+    float thetaRange = maxTheta - minTheta;
+
+    for (int i = 0; i <= n_slices; i++) {
+        auto uFrac = float(i) / float(n_slices);
+        auto theta = -(minTheta + thetaRange * uFrac);
+        auto u = uFrac * uvWidth + uvLeft;
+        auto x = std::sinf(theta);
+        auto z = std::cosf(theta);
+
+        auto i1 = meshBuilder.add_vertex(x, 1, z, u, uvTop);
+        auto i2 = meshBuilder.add_vertex(x, -1, z, u, uvBottom);
+        if (i > 0) {
+            meshBuilder.add_quad(i1 - 2, i1, i2, i2 - 2);
         }
     }
 
@@ -544,13 +564,23 @@ void Renderer::ComputeMesh() {
             }
 
             case InputVideoMode::EQUIRECT_180:
-                eyeMeshes[eye] = BuildUvSphereMesh(30, 30, M_PI_2, M_PI * 1.5f, uvLeft, uvTop,
+                eyeMeshes[eye] = BuildUvSphereMesh(20, 20, M_PI_2, M_PI * 1.5f, uvLeft, uvTop,
                                                    uvRight, uvBottom);
                 break;
 
             case InputVideoMode::EQUIRECT_360:
-                eyeMeshes[eye] = BuildUvSphereMesh(40, 30, 0, M_2_PI, uvLeft, uvTop,
+                eyeMeshes[eye] = BuildUvSphereMesh(40, 20, 0, M_PI * 2.0f, uvLeft, uvTop,
                                                    uvRight, uvBottom);
+                break;
+
+            case InputVideoMode::PANORAMA_180:
+                eyeMeshes[eye] = BuildCylindricalMesh(20, M_PI_2, M_PI * 1.5f, uvLeft, uvTop,
+                                                      uvRight, uvBottom);
+                break;
+
+            case InputVideoMode::PANORAMA_360:
+                eyeMeshes[eye] = BuildCylindricalMesh(40, 0, M_PI * 2.0f, uvLeft, uvTop, uvRight,
+                                                      uvBottom);
                 break;
 
             default:

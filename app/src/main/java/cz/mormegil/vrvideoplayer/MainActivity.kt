@@ -1,6 +1,5 @@
 package cz.mormegil.vrvideoplayer
 
-import android.icu.util.Output
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +14,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import cz.mormegil.vrvideoplayer.databinding.ActivityMainBinding
+import java.lang.IllegalArgumentException
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -30,6 +30,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var uiAlignmentMarker: RelativeLayout
 
     private var nativeApp: Long = 0
+    private var inputLayout: InputLayout = InputLayout.Mono
+    private var inputMode: InputMode = InputMode.PlainFov
+    private var outputMode: OutputMode = OutputMode.MonoLeft
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,18 +97,58 @@ class MainActivity : AppCompatActivity() {
                     return@setOnMenuItemClickListener true
                 }
 
+                R.id.input_layout_mono -> {
+                    setInputLayout(InputLayout.Mono, item)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.input_layout_stereo_horiz -> {
+                    setInputLayout(InputLayout.StereoHoriz, item)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.input_layout_stereo_vert -> {
+                    setInputLayout(InputLayout.StereoVert, item)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.input_mode_plain_fov -> {
+                    setInputMode(InputMode.PlainFov, item)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.input_mode_equirect_180 -> {
+                    setInputMode(InputMode.Equirect180, item)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.input_mode_equirect_360 -> {
+                    setInputMode(InputMode.Equirect360, item)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.input_mode_panorama_180 -> {
+                    setInputMode(InputMode.Panorama180, item)
+                    return@setOnMenuItemClickListener true
+                }
+
+                R.id.input_mode_panorama_360 -> {
+                    setInputMode(InputMode.Panorama360, item)
+                    return@setOnMenuItemClickListener true
+                }
+
                 R.id.output_mode_mono_left_eye -> {
-                    NativeLibrary.nativeSetOutputMode(nativeApp, OutputMode.MonoLeft.ordinal);
+                    setOutputMode(OutputMode.MonoLeft, item)
                     return@setOnMenuItemClickListener true
                 }
 
                 R.id.output_mode_mono_right_eye -> {
-                    NativeLibrary.nativeSetOutputMode(nativeApp, OutputMode.MonoRight.ordinal);
+                    setOutputMode(OutputMode.MonoRight, item)
                     return@setOnMenuItemClickListener true
                 }
 
                 R.id.output_mode_cardboard -> {
-                    NativeLibrary.nativeSetOutputMode(nativeApp, OutputMode.CardboardStereo.ordinal);
+                    setOutputMode(OutputMode.CardboardStereo, item)
                     return@setOnMenuItemClickListener true
                 }
 
@@ -115,6 +158,30 @@ class MainActivity : AppCompatActivity() {
             }
         }
         popup.show()
+    }
+
+    private fun setInputLayout(newLayout: InputLayout, menuItem: MenuItem) {
+        if (newLayout != inputLayout) {
+            inputLayout = newLayout;
+            NativeLibrary.nativeSetOptions(nativeApp, inputLayout.ordinal, inputMode.ordinal, outputMode.ordinal);
+            menuItem.isChecked = true
+        }
+    }
+
+    private fun setInputMode(newMode: InputMode, menuItem: MenuItem) {
+        if (newMode != inputMode) {
+            inputMode = newMode;
+            NativeLibrary.nativeSetOptions(nativeApp, inputLayout.ordinal, inputMode.ordinal, outputMode.ordinal);
+            menuItem.isChecked = true
+        }
+    }
+
+    private fun setOutputMode(newMode: OutputMode, menuItem: MenuItem) {
+        if (newMode != outputMode) {
+            outputMode = newMode;
+            NativeLibrary.nativeSetOptions(nativeApp, inputLayout.ordinal, inputMode.ordinal, outputMode.ordinal);
+            menuItem.isChecked = true
+        }
     }
 
     private fun doResume() {

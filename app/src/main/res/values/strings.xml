@@ -6,4 +6,12 @@
     <string name="output_mode_mono_left_eye">Monoscopic (L)</string>
     <string name="output_mode_mono_right_eye">Monoscopic (R)</string>
     <string name="output_mode_cardboard">Cardboard</string>
+    <string name="input_layout_mono">Monoscopic</string>
+    <string name="input_layout_stereo_horiz">Side-by-side stereo</string>
+    <string name="input_layout_stereo_vert">Vertical stereo</string>
+    <string name="input_mode_plain_fov">Flat FOV</string>
+    <string name="input_mode_equirect_180">180° equirectangular</string>
+    <string name="input_mode_equirect_360">360° equirectangular</string>
+    <string name="input_mode_panorama_180">180° panorama</string>
+    <string name="input_mode_panorama_360">360° panorama</string>
 </resources>

@@ -92,20 +92,26 @@ Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeScanCardboardQr(
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeSetOptions(
+        JNIEnv * /* jenv */,
+        jobject /* this */,
+        jlong native_app,
+        jint input_layout_int,
+        jint input_mode_int,
+        jint output_mode_int) {
+    LOG_DEBUG("nativeScanCardboardQr");
+    fromJava(native_app)->SetOptions(
+            static_cast<InputVideoLayout>(input_layout_int),
+            static_cast<InputVideoMode>(input_mode_int),
+            static_cast<OutputMode>(output_mode_int)
+    );
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeDrawFrame(
         JNIEnv * /* jenv */,
         jobject /* this */,
         jlong native_app) {
     // LOG_DEBUG("nativeDrawFrame");
     fromJava(native_app)->DrawFrame();
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeSetOutputMode(
-        JNIEnv * /* jenv */,
-        jobject /* this */,
-        jlong native_app,
-        jint output_mode_int) {
-    LOG_DEBUG("nativeScanCardboardQr");
-    fromJava(native_app)->SetOutputMode(static_cast<OutputMode>(output_mode_int));
 }

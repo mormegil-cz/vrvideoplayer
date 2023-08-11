@@ -18,9 +18,9 @@
 #include "GLUtils.h"
 
 enum class InputVideoLayout {
-    MONO,
-    STEREO_HORIZ,
-    STEREO_VERT,
+    MONO = 1,
+    STEREO_HORIZ = 2,
+    STEREO_VERT = 3,
 };
 
 enum class InputVideoMode {
