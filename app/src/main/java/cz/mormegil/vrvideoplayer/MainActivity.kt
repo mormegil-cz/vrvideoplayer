@@ -27,7 +27,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var glView: GLSurfaceView
     private lateinit var videoTexturePlayer: VideoTexturePlayer
-    private lateinit var uiAlignmentMarker: RelativeLayout
 
     private var nativeApp: Long = 0
     private var inputLayout: InputLayout = InputLayout.Mono
@@ -49,9 +48,6 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        uiAlignmentMarker = binding.uiAlignmentMarker
-        // TODO: Show/hide alignment marker according to output mode
 
         glView = binding.surfaceView
         glView.setEGLContextClientVersion(2)

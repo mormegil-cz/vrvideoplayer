@@ -54,6 +54,22 @@ void main() {
   fragColor = texture(u_Texture, v_UV);
 })glsl";
 
+constexpr const char *kVertexShader2D = R"glsl(#version 300 es
+in vec4 a_Position;
+
+void main() {
+  gl_Position = a_Position;
+})glsl";
+
+constexpr const char *kFragmentShader2D = R"glsl(#version 300 es
+precision mediump float;
+
+out vec4 fragColor;
+
+void main() {
+  fragColor = vec4(1.0);
+})glsl";
+
 Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTexturePlayerObj)
         : glInitialized(false),
           screenParamsChanged(false),
@@ -133,22 +149,35 @@ static void bindVideoTexture(GLuint textureId) {
 void Renderer::OnSurfaceCreated(JNIEnv *env) {
     LOG_DEBUG("OnSurfaceCreated");
 
-    const GLuint obj_vertex_shader = LoadGLShader(GL_VERTEX_SHADER, kVertexShader);
-    const GLuint obj_fragment_shader = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShader);
+    const GLuint vertexShader = LoadGLShader(GL_VERTEX_SHADER, kVertexShader);
+    const GLuint fragmentShader = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShader);
 
-    program = glCreateProgram();
-    glAttachShader(program, obj_vertex_shader);
-    glAttachShader(program, obj_fragment_shader);
-    glLinkProgram(program);
-    glUseProgram(program);
-    CHECK_GL_ERROR("Obj program");
+    programVideo = glCreateProgram();
+    glAttachShader(programVideo, vertexShader);
+    glAttachShader(programVideo, fragmentShader);
+    glLinkProgram(programVideo);
+    glUseProgram(programVideo);
+    CHECK_GL_ERROR("Video program");
 
-    programParamPosition = glGetAttribLocation(program, "a_Position");
-    programParamUV = glGetAttribLocation(program, "a_UV");
-    programParamMVPMatrix = glGetUniformLocation(program, "u_MVP");
-    CHECK_GL_ERROR("Obj program params");
+    programVideoParamPosition = glGetAttribLocation(programVideo, "a_Position");
+    programVideoParamUV = glGetAttribLocation(programVideo, "a_UV");
+    programVideoParamMVPMatrix = glGetUniformLocation(programVideo, "u_MVP");
+    CHECK_GL_ERROR("Video program params");
 
     initVideoTexture(env, javaVideoTexturePlayer, videoTexture);
+
+    const GLuint vertexShader2D = LoadGLShader(GL_VERTEX_SHADER, kVertexShader2D);
+    const GLuint fragmentShader2D = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShader2D);
+
+    program2D = glCreateProgram();
+    glAttachShader(program2D, vertexShader2D);
+    glAttachShader(program2D, fragmentShader2D);
+    glLinkProgram(program2D);
+    glUseProgram(program2D);
+    CHECK_GL_ERROR("2D program");
+
+    program2DParamPosition = glGetAttribLocation(program2D, "a_Position");
+    CHECK_GL_ERROR("2D program params");
 }
 
 void Renderer::DrawFrame() {
@@ -185,6 +214,7 @@ void Renderer::DrawFrame() {
     } else {
         glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
     }
+    CHECK_GL_ERROR("Framebuffer");
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -194,17 +224,20 @@ void Renderer::DrawFrame() {
     glClear(GL_COLOR_BUFFER_BIT);
     CHECK_GL_ERROR("Params");
 
-    bindVideoTexture(videoTexture);
-    CHECK_GL_ERROR("Bind texture");
-
-    glUseProgram(program);
     for (int eye = minEye; eye <= maxEye; ++eye) {
+        bindVideoTexture(videoTexture);
+        glUseProgram(programVideo);
         glViewport((eye - minEye) * eyeWidth, 0, eyeWidth, screenHeight);
 
         auto mvpMatrix = BuildMVPMatrix(eye);
-        glUniformMatrix4fv(programParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+        glUniformMatrix4fv(programVideoParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
 
-        eyeMeshes[eye].Render(programParamPosition, programParamUV);
+        eyeMeshes[eye].Render(programVideoParamPosition, programVideoParamUV);
+
+        if (pointerShown) {
+            glUseProgram(program2D);
+            RenderPointer();
+        }
     }
 
     if (outputMode == OutputMode::CARDBOARD_STEREO) {
@@ -213,9 +246,35 @@ void Renderer::DrawFrame() {
                 0, 0, screenWidth, screenHeight,
                 &cardboardEyeTextureDescriptions[0], &cardboardEyeTextureDescriptions[1]
         );
+        CHECK_GL_ERROR("Render cardboard");
+
+        glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
+        glViewport(0, 0, screenWidth, screenHeight);
+        glUseProgram(program2D);
+        RenderCardboardAlignLine();
+        CHECK_GL_ERROR("Align line");
     }
 
     ++frameCount;
+}
+
+static constexpr std::array<float, 3> pointerCoords = {0.0f, 0.0f, 0.5f};
+static constexpr std::array<float, 6> cardboardAlignLineCoords = {0.0f, -0.2f, 0.5f, 0.0f, -1.0f, 0.5f};
+static constexpr GLubyte trivial2DData[] = {0, 1};
+
+void Renderer::RenderPointer() {
+    // TODO: Pointer size? gl_PointSize?
+    glEnableVertexAttribArray(program2DParamPosition);
+    glVertexAttribPointer(program2DParamPosition, 3, GL_FLOAT, GL_FALSE, 0, pointerCoords.data());
+
+    glDrawElements(GL_POINTS, 1, GL_UNSIGNED_BYTE, trivial2DData);
+}
+
+void Renderer::RenderCardboardAlignLine() {
+    glEnableVertexAttribArray(program2DParamPosition);
+    glVertexAttribPointer(program2DParamPosition, 3, GL_FLOAT, GL_FALSE, 0, cardboardAlignLineCoords.data());
+
+    glDrawElements(GL_LINES, 2, GL_UNSIGNED_BYTE, trivial2DData);
 }
 
 bool Renderer::UpdateDeviceParams() {

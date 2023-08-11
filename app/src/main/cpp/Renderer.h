@@ -74,26 +74,29 @@ private:
     bool glInitialized;
     InputVideoLayout inputVideoLayout;
     InputVideoMode inputVideoMode;
-
     OutputMode outputMode;
 
     unsigned long frameCount;
-    GLuint program;
-    GLint programParamPosition;
-    GLint programParamUV;
+    GLuint programVideo;
+    GLint programVideoParamPosition;
+    GLint programVideoParamUV;
+    GLint programVideoParamMVPMatrix;
+    GLuint program2D;
+    GLint program2DParamPosition;
 
-    GLint programParamMVPMatrix;
     GLuint videoTexture;
     GLuint renderTexture;
 
     GLuint framebuffer;
 
-    std::array<TexturedMesh, 2> eyeMeshes;
-
-    glm::mat4 viewMatrix;
     std::array<glm::mat4, 2> cardboardEyeMatrices;
     std::array<glm::mat4, 2> cardboardProjectionMatrices;
     std::array<CardboardEyeTextureDescription, 2> cardboardEyeTextureDescriptions;
+
+    std::array<TexturedMesh, 2> eyeMeshes;
+
+    glm::mat4 viewMatrix;
+    bool pointerShown = true;
 
     bool UpdateDeviceParams();
 
@@ -104,6 +107,10 @@ private:
     void ComputeMesh();
 
     void UpdatePose();
+
+    void RenderPointer();
+
+    void RenderCardboardAlignLine();
 
     glm::mat4 BuildMVPMatrix(int eye);
 };

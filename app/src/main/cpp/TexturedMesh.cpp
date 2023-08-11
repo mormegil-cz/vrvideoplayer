@@ -32,8 +32,6 @@ void TexturedMesh::Render(GLint programParamPosition, GLint programParamUV) {
     glVertexAttribPointer(programParamPosition, 3, GL_FLOAT, GL_FALSE, 0, vertexPos.get());
     glEnableVertexAttribArray(programParamUV);
     glVertexAttribPointer(programParamUV, 2, GL_FLOAT, GL_FALSE, 0, vertexUV.get());
-//    glEnableVertexAttribArray(programParamColor);
-//    glVertexAttribPointer(programParamColor, 4, GL_FLOAT, GL_FALSE, 0, vertexColor.get());
 
     glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_SHORT, vertexIndex.get());
     //CHECK_GL_ERROR("Render");
