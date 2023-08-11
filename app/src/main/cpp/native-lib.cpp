@@ -29,10 +29,9 @@ Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeInit(
         JNIEnv * /* env */,
         jobject /* this */,
         jobject contextObj,
-        jobject assets,
         jobject videoTexturePlayer) {
     LOG_DEBUG("nativeOnStart");
-    return toJava(new Renderer(javaVm, contextObj, assets, videoTexturePlayer));
+    return toJava(new Renderer(javaVm, contextObj, videoTexturePlayer));
 }
 
 extern "C" JNIEXPORT void JNICALL

@@ -6,7 +6,6 @@ import android.content.res.AssetManager
 object NativeLibrary {
     external fun nativeInit(
         context: Context,
-        assets: AssetManager,
         videoTexturePlayer: VideoTexturePlayer
     ): Long
 
@@ -16,7 +15,13 @@ object NativeLibrary {
     external fun nativeOnSurfaceCreated(nativeApp: Long)
     external fun nativeSetScreenParams(nativeApp: Long, width: Int, height: Int)
     external fun nativeScanCardboardQr(nativeApp: Long);
-    external fun nativeSetOptions(nativeApp: Long, inputLayout: Int, inputMode: Int, outputMode: Int);
+    external fun nativeSetOptions(
+        nativeApp: Long,
+        inputLayout: Int,
+        inputMode: Int,
+        outputMode: Int
+    );
+
     external fun nativeDrawFrame(nativeApp: Long);
 
     init {

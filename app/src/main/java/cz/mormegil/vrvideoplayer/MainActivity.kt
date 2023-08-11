@@ -64,7 +64,7 @@ class MainActivity : AppCompatActivity() {
 
         videoTexturePlayer = VideoTexturePlayer(this, videoUri)
 
-        nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
+        nativeApp = NativeLibrary.nativeInit(this, videoTexturePlayer)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, binding.root).let { controller ->
@@ -163,7 +163,12 @@ class MainActivity : AppCompatActivity() {
     private fun setInputLayout(newLayout: InputLayout, menuItem: MenuItem) {
         if (newLayout != inputLayout) {
             inputLayout = newLayout;
-            NativeLibrary.nativeSetOptions(nativeApp, inputLayout.ordinal, inputMode.ordinal, outputMode.ordinal);
+            NativeLibrary.nativeSetOptions(
+                nativeApp,
+                inputLayout.ordinal,
+                inputMode.ordinal,
+                outputMode.ordinal
+            );
             menuItem.isChecked = true
         }
     }
@@ -171,7 +176,12 @@ class MainActivity : AppCompatActivity() {
     private fun setInputMode(newMode: InputMode, menuItem: MenuItem) {
         if (newMode != inputMode) {
             inputMode = newMode;
-            NativeLibrary.nativeSetOptions(nativeApp, inputLayout.ordinal, inputMode.ordinal, outputMode.ordinal);
+            NativeLibrary.nativeSetOptions(
+                nativeApp,
+                inputLayout.ordinal,
+                inputMode.ordinal,
+                outputMode.ordinal
+            );
             menuItem.isChecked = true
         }
     }
@@ -179,7 +189,12 @@ class MainActivity : AppCompatActivity() {
     private fun setOutputMode(newMode: OutputMode, menuItem: MenuItem) {
         if (newMode != outputMode) {
             outputMode = newMode;
-            NativeLibrary.nativeSetOptions(nativeApp, inputLayout.ordinal, inputMode.ordinal, outputMode.ordinal);
+            NativeLibrary.nativeSetOptions(
+                nativeApp,
+                inputLayout.ordinal,
+                inputMode.ordinal,
+                outputMode.ordinal
+            );
             menuItem.isChecked = true
         }
     }

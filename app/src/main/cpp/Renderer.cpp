@@ -54,8 +54,7 @@ void main() {
   fragColor = texture(u_Texture, v_UV);
 })glsl";
 
-Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
-                   jobject javaVideoTexturePlayerObj)
+Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTexturePlayerObj)
         : glInitialized(false),
           screenParamsChanged(false),
           deviceParamsChanged(false),
@@ -71,7 +70,6 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
     JNIEnv *env;
     vm->GetEnv((void **) &env, JNI_VERSION_1_6);
     javaContext = env->NewGlobalRef(javaContextObj);
-    javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
     javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
 
     Cardboard_initializeAndroid(vm, javaContextObj);
@@ -83,7 +81,7 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
 Renderer::~Renderer() {
     LOG_DEBUG("Renderer instance destroyed");
 
-    // TODO: deallocate javaContext, javaAssetMgr, javaVideoTexturePlayer?
+    // TODO: deallocate javaContext, javaVideoTexturePlayer?
 }
 
 void Renderer::OnPause() {
@@ -109,29 +107,6 @@ void Renderer::SetScreenParams(int width, int height) {
     screenWidth = width;
     screenHeight = height;
     screenParamsChanged = true;
-}
-
-static void
-initTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const std::string &path) {
-    glGenTextures(1, &textureId);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (!LoadPngFromAssetManager(env, java_asset_mgr, GL_TEXTURE_2D, path)) {
-        LOG_ERROR("Couldn't load texture");
-        return;
-    }
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    CHECK_GL_ERROR("Texture load");
-}
-
-static void bindTexture(GLuint textureId) {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureId);
 }
 
 static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId) {
@@ -173,7 +148,6 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     programParamMVPMatrix = glGetUniformLocation(program, "u_MVP");
     CHECK_GL_ERROR("Obj program params");
 
-    // initTexture(env, javaAssetMgr, videoTexture, "test-image-square.png");
     initVideoTexture(env, javaVideoTexturePlayer, videoTexture);
 }
 
@@ -315,14 +289,6 @@ void Renderer::GlSetup() {
     }
     glInitialized = true;
 
-    /*
-    // Generate depth buffer to perform depth test.
-    glGenRenderbuffers(1, &depthRenderBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screenWidth, screenHeight);
-    CHECK_GL_ERROR("Create depth buffer");
-    */
-
     // Create render texture.
     glGenTextures(1, &renderTexture);
     glBindTexture(GL_TEXTURE_2D, renderTexture);
@@ -338,7 +304,6 @@ void Renderer::GlSetup() {
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
-    // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
     CHECK_GL_ERROR("Create render buffer");
 
     cardboardEyeTextureDescriptions[0] = {
@@ -365,10 +330,6 @@ void Renderer::GlTeardown() {
     }
     glInitialized = false;
 
-    /*
-    glDeleteRenderbuffers(1, &depthRenderBuffer);
-    depthRenderBuffer = 0;
-    */
     glDeleteFramebuffers(1, &framebuffer);
     framebuffer = 0;
     glDeleteTextures(1, &renderTexture);

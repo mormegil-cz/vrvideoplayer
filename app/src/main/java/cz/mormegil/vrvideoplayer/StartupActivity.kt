@@ -14,7 +14,7 @@ class StartupActivity : ComponentActivity() {
     }
 
     private val videoGalleryChooser =
-        registerForActivityResult((ActivityResultContracts.PickVisualMedia()), ::initWithVideo)
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia(), ::initWithVideo)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -6,10 +6,6 @@
 #include <EGL/egl.h>
 #include <GLES/gl.h>
 
-// TODO: Remove asset manager?
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
-
 #include <cardboard.h>
 
 #include "glm/mat4x4.hpp"
@@ -42,7 +38,7 @@ enum class OutputMode {
 
 class Renderer {
 public:
-    Renderer(JavaVM *vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj);
+    Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTexturePlayerObj);
 
     virtual ~Renderer();
 
@@ -50,8 +46,6 @@ public:
 
     void SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
                     OutputMode outputMode);
-
-    void SetOutputMode(OutputMode mode);
 
     void ScanCardboardQr();
 
@@ -65,8 +59,6 @@ public:
 
 private:
     jobject javaContext;
-    // TODO: Remove asset manager?
-    jobject javaAssetMgr;
     jobject javaVideoTexturePlayer;
 
     CardboardHeadTrackerPointer cardboardHeadTracker;
