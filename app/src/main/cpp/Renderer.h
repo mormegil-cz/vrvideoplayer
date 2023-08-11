@@ -1,56 +1,119 @@
 #ifndef VRVIDEOPLAYER_RENDERER_H
 #define VRVIDEOPLAYER_RENDERER_H
 
-#include <pthread.h>
+#include <array>
+
 #include <EGL/egl.h>
 #include <GLES/gl.h>
 
+// TODO: Remove asset manager?
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 
+#include <cardboard.h>
+
 #include "glm/mat4x4.hpp"
 
-class Renderer {
+#include "TexturedMesh.h"
+#include "GLUtils.h"
 
+enum class InputVideoLayout {
+    MONO = 1,
+    STEREO_HORIZ = 2,
+    STEREO_VERT = 3,
+};
+
+enum class InputVideoMode {
+    PLAIN_FOV = 1,
+    EQUIRECT_180 = 2,
+    EQUIRECT_360 = 3,
+    CUBE_MAP = 4,
+    EQUIANG_CUBE_MAP = 5,
+    PYRAMID = 6,
+    PANORAMA_180 = 7,
+    PANORAMA_360 = 8,
+};
+
+enum class OutputMode {
+    MONO_LEFT = 1,
+    MONO_RIGHT = 2,
+    CARDBOARD_STEREO = 3,
+};
+
+class Renderer {
 public:
-    Renderer(JavaVM* vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj);
+    Renderer(JavaVM *vm, jobject obj, jobject javaAssetMgrObj, jobject javaVideoTexturePlayerObj);
+
     virtual ~Renderer();
 
-    void OnSurfaceCreated(JNIEnv* env);
+    void OnSurfaceCreated(JNIEnv *env);
+
+    void SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
+                    OutputMode outputMode);
+
+    void SetOutputMode(OutputMode mode);
+
+    void ScanCardboardQr();
+
     void SetScreenParams(int width, int height);
+
     void DrawFrame();
+
     void OnPause();
+
     void OnResume();
 
 private:
     jobject javaContext;
+    // TODO: Remove asset manager?
     jobject javaAssetMgr;
     jobject javaVideoTexturePlayer;
+
+    CardboardHeadTrackerPointer cardboardHeadTracker;
+    CardboardLensDistortionPointer cardboardLensDistortion;
+    CardboardDistortionRendererPointer cardboardDistortionRenderer;
 
     bool screenParamsChanged;
     bool deviceParamsChanged;
     int screenWidth;
+
     int screenHeight;
 
     bool glInitialized;
+    InputVideoLayout inputVideoLayout;
+    InputVideoMode inputVideoMode;
+
+    OutputMode outputMode;
 
     unsigned long frameCount;
-    GLfloat angle;
+    GLuint program;
+    GLint programParamPosition;
+    GLint programParamUV;
 
-    GLuint obj_program;
-    GLint obj_position_param;
-    GLint obj_uv_param;
-    GLint obj_color_param;
-    GLint obj_modelview_projection_param;
+    GLint programParamMVPMatrix;
+    GLuint videoTexture;
+    GLuint renderTexture;
 
-    GLuint depthRenderBuffer;
-    GLuint cubeTexture;
+    GLuint framebuffer;
+
+    std::array<TexturedMesh, 2> eyeMeshes;
+
+    glm::mat4 viewMatrix;
+    std::array<glm::mat4, 2> cardboardEyeMatrices;
+    std::array<glm::mat4, 2> cardboardProjectionMatrices;
+    std::array<CardboardEyeTextureDescription, 2> cardboardEyeTextureDescriptions;
 
     bool UpdateDeviceParams();
+
     void GlSetup();
+
     void GlTeardown();
 
-    glm::mat4 BuildMVPMatrix();
+    void ComputeMesh();
+
+    void UpdatePose();
+
+    glm::mat4 BuildMVPMatrix(int eye);
 };
 
 #endif //VRVIDEOPLAYER_RENDERER_H

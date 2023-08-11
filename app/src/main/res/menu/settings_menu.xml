@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/output_mode_mono_left_eye"
+            android:checked="true"
+            android:title="@string/output_mode_mono_left_eye" />
+        <item
+            android:id="@+id/output_mode_mono_right_eye"
+            android:title="@string/output_mode_mono_right_eye" />
+        <item
+            android:id="@+id/output_mode_cardboard"
+            android:title="@string/output_mode_cardboard" />
+    </group>
+    <item android:id="@+id/switch_viewer"
+        android:title="@string/switch_viewer" />
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/input_layout_mono"
+            android:checked="true"
+            android:title="@string/input_layout_mono" />
+        <item
+            android:id="@+id/input_layout_stereo_horiz"
+            android:title="@string/input_layout_stereo_horiz" />
+        <item
+            android:id="@+id/input_layout_stereo_vert"
+            android:title="@string/input_layout_stereo_vert" />
+    </group>
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/input_mode_plain_fov"
+            android:checked="true"
+            android:title="@string/input_mode_plain_fov" />
+        <item
+            android:id="@+id/input_mode_equirect_180"
+            android:title="@string/input_mode_equirect_180" />
+        <item
+            android:id="@+id/input_mode_equirect_360"
+            android:title="@string/input_mode_equirect_360" />
+        <item
+            android:id="@+id/input_mode_panorama_180"
+            android:title="@string/input_mode_panorama_180" />
+        <item
+            android:id="@+id/input_mode_panorama_360"
+            android:title="@string/input_mode_panorama_360" />
+    </group>
+</menu>
