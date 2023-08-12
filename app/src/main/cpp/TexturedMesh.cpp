@@ -1,9 +1,10 @@
 #include "TexturedMesh.h"
 
-#include <GLES2/gl2.h>
+#include <cassert>
 
 #include <utility>
-#include <cassert>
+
+#include <GLES2/gl2.h>
 
 TexturedMesh::TexturedMesh() :
         vertexCount(0),

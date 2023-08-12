@@ -1,31 +1,32 @@
 #include "GLUtils.h"
-#include "logger.h"
 
-#include <android/log.h>
+#include <cmath>
+#include <ctime>
 
 #include <array>
-#include <cmath>
 #include <random>
 #include <sstream>
 #include <string>
 #include <utility>
 
-#include <ctime>
-
+#include <android/log.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
+#include "logger.h"
+
 #define LOG_TAG "VRVideoPlayerU"
 
-class RunAtEndOfScope {
-public:
-    RunAtEndOfScope(std::function<void()> function) : function(std::move(function)) {}
+namespace {
+    class RunAtEndOfScope {
+    public:
+        explicit RunAtEndOfScope(std::function<void()> function) : function(std::move(function)) {}
 
-    ~RunAtEndOfScope() { function(); }
-
-private:
-    std::function<void()> function;
-};
+        ~RunAtEndOfScope() { function(); }
+    private:
+        std::function<void()> function;
+    };
+}
 
 GLuint LoadGLShader(GLenum type, const char *shader_source) {
     GLuint shader = glCreateShader(type);

@@ -1,13 +1,17 @@
+#include "Renderer.h"
+
+#include <cmath>
+
+#include <array>
+#include <fstream>
+
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <android/log.h>
-
-#include <array>
-#include <cmath>
-#include <fstream>
-
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+
+#include <cardboard.h>
 
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -18,9 +22,7 @@
 #include "glm/ext/scalar_constants.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-#include <cardboard.h>
-
-#include "Renderer.h"
+#include "VRGuiButton.h"
 #include "GLUtils.h"
 #include "logger.h"
 
@@ -69,6 +71,24 @@ out vec4 fragColor;
 void main() {
   fragColor = vec4(1.0);
 })glsl";
+
+constexpr float VR_GUI_BUTTON_GRID = M_PI * 8 / 180.0f;
+constexpr float VR_GUI_BUTTON_SIZE = M_PI * 7 / 180.0f;
+constexpr float VR_GUI_BUTTON_PHI_0 = M_PI - VR_GUI_BUTTON_GRID * 0.5f;
+constexpr float VR_GUI_DISTANCE = kzFar * 0.9f;
+
+static std::array<VRGuiButton, 10> vrGuiButtons {
+    VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::RECENTER_2D, true),
+    VRGuiButton(M_PI - 0 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::RECENTER_YAW, true),
+    VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::VOLUME_DOWN, true),
+    VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::VOLUME_UP, true),
+    VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::OPEN_FILE, true),
+    VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::PLAY, false),
+    VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::BACK, true),
+    VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::FORWARD, true),
+    VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::REWIND, true),
+    VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::PAUSE, true)
+};
 
 Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTexturePlayerObj)
         : glInitialized(false),

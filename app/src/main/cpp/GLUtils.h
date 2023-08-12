@@ -1,13 +1,13 @@
 #ifndef VR_VIDEO_PLAYER_GLUTILS_H
 #define VR_VIDEO_PLAYER_GLUTILS_H
 
-#include <android/asset_manager.h>
-#include <jni.h>
-
 #include <array>
 #include <vector>
 
+#include <jni.h>
+#include <android/asset_manager.h>
 #include <GLES2/gl2.h>
+
 #include <cardboard.h>
 
 GLuint LoadGLShader(GLenum type, const char *shader_source);

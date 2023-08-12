@@ -2,6 +2,7 @@
 #define VRVIDEOPLAYER_LOGGER_H
 
 #include <strings.h>
+
 #include <android/log.h>
 
 #define LOG_DEBUG(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
