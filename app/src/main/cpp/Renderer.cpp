@@ -83,10 +83,20 @@ void main() {
   fragColor = vec4(1.0);
 })glsl";
 
-constexpr float VR_GUI_BUTTON_GRID = M_PI * 8 / 180.0f;
-constexpr float VR_GUI_BUTTON_SIZE = M_PI * 7 / 180.0f;
-constexpr float VR_GUI_BUTTON_PHI_0 = -0.5f * VR_GUI_BUTTON_GRID;
-constexpr float VR_GUI_DISTANCE = kzFar * 0.99f;
+static constexpr float VR_GUI_BUTTON_GRID = M_PI * 8 / 180.0f;
+static constexpr float VR_GUI_BUTTON_SIZE = M_PI * 7 / 180.0f;
+static constexpr float VR_GUI_BUTTON_PHI_0 = -0.5f * VR_GUI_BUTTON_GRID;
+static constexpr float VR_GUI_DISTANCE = kzFar * 0.4f;
+
+static constexpr float HEAD_GESTURE_PITCH_LIMIT = glm::radians(60.0f);
+static constexpr float HEAD_GESTURE_PITCH_LIMIT_RETURN = glm::radians(45.0f);
+
+static constexpr glm::vec3 Y_AXIS = {0.0f, 1.0f, 0.0f};
+
+static constexpr std::array<float, 3> pointerCoords = {0.0f, 0.0f, VR_GUI_DISTANCE};
+static constexpr std::array<float, 6> cardboardAlignLineCoords = {0.0f, -0.2f, 0.5f, 0.0f, -1.0f,
+                                                                  0.5f};
+static constexpr GLubyte trivial2DData[] = {0, 1};
 
 static std::array<VRGuiButton, 10> vrGuiButtons{
         VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
@@ -317,10 +327,12 @@ void Renderer::DrawFrame() {
 
         eyeMeshes[eye].Render(programVideoParamPosition, programVideoParamUV);
 
-        if (pointerShown) {
+        if (vrGuiShown) {
             glUseProgram(programVRGui);
             glBindTexture(GL_TEXTURE_2D, buttonTexture);
-            glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+            glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, vrGuiCenterTheta, Y_AXIS);
+            glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE,
+                               glm::value_ptr(guiMvpMatrix));
             for (const VRGuiButton &button: vrGuiButtons) {
                 button.Render(programVRGuiParamPosition, programVRGuiParamUV);
             }
@@ -347,11 +359,6 @@ void Renderer::DrawFrame() {
 
     ++frameCount;
 }
-
-static constexpr std::array<float, 3> pointerCoords = {0.0f, 0.0f, 0.5f};
-static constexpr std::array<float, 6> cardboardAlignLineCoords = {0.0f, -0.2f, 0.5f, 0.0f, -1.0f,
-                                                                  0.5f};
-static constexpr GLubyte trivial2DData[] = {0, 1};
 
 void Renderer::RenderPointer() {
     // TODO: Pointer size? gl_PointSize?
@@ -749,5 +756,23 @@ void Renderer::UpdatePose() {
     );
 
     // viewMatrix = glm::translate(toMat4(headOrientationQuat), headPosition);
-    viewMatrix = toMat4(headOrientationQuat);
+    viewMatrix = glm::toMat4(headOrientationQuat);
+
+    viewEulerAngles = glm::eulerAngles(headOrientationQuat);
+
+    const float pitch = viewEulerAngles.x;
+    const float yaw = -viewEulerAngles.y;
+    if (isHeadGesturingUp) {
+        if (pitch < HEAD_GESTURE_PITCH_LIMIT_RETURN) {
+            // head moved from up to not-up
+            isHeadGesturingUp = false;
+        }
+    } else {
+        if (pitch > HEAD_GESTURE_PITCH_LIMIT) {
+            // head moved from not-up to up
+            isHeadGesturingUp = true;
+            vrGuiShown = !vrGuiShown;
+            vrGuiCenterTheta = yaw;
+        }
+    }
 }

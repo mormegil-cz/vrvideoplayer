@@ -104,7 +104,11 @@ private:
     std::array<TexturedMesh, 2> eyeMeshes;
 
     glm::mat4 viewMatrix;
-    bool pointerShown = true;
+    glm::vec3 viewEulerAngles;
+
+    bool vrGuiShown = false;
+    bool isHeadGesturingUp = false;
+    float vrGuiCenterTheta = 0.0f;
 
     bool UpdateDeviceParams();
 
