@@ -56,6 +56,17 @@ void main() {
   fragColor = texture(u_Texture, v_UV);
 })glsl";
 
+constexpr const char *kFragmentShaderVRGui = R"glsl(#version 300 es
+precision mediump float;
+
+uniform sampler2D u_Texture;
+in vec2 v_UV;
+out vec4 fragColor;
+
+void main() {
+  fragColor = texture(u_Texture, v_UV);
+})glsl";
+
 constexpr const char *kVertexShader2D = R"glsl(#version 300 es
 in vec4 a_Position;
 
@@ -74,23 +85,34 @@ void main() {
 
 constexpr float VR_GUI_BUTTON_GRID = M_PI * 8 / 180.0f;
 constexpr float VR_GUI_BUTTON_SIZE = M_PI * 7 / 180.0f;
-constexpr float VR_GUI_BUTTON_PHI_0 = M_PI - VR_GUI_BUTTON_GRID * 0.5f;
-constexpr float VR_GUI_DISTANCE = kzFar * 0.9f;
+constexpr float VR_GUI_BUTTON_PHI_0 = -0.5f * VR_GUI_BUTTON_GRID;
+constexpr float VR_GUI_DISTANCE = kzFar * 0.99f;
 
-static std::array<VRGuiButton, 10> vrGuiButtons {
-    VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::RECENTER_2D, true),
-    VRGuiButton(M_PI - 0 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::RECENTER_YAW, true),
-    VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::VOLUME_DOWN, true),
-    VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::VOLUME_UP, true),
-    VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::OPEN_FILE, true),
-    VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::PLAY, false),
-    VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::BACK, true),
-    VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::FORWARD, true),
-    VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::REWIND, true),
-    VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID, VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::PAUSE, true)
+static std::array<VRGuiButton, 10> vrGuiButtons{
+        VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::RECENTER_2D, true),
+        VRGuiButton(M_PI - 0 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 0, ButtonAction::RECENTER_YAW, true),
+        VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 512, 0, ButtonAction::VOLUME_DOWN, true),
+        VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 768, 0, ButtonAction::VOLUME_UP, true),
+        VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 256, ButtonAction::OPEN_FILE, true),
+        VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 256, ButtonAction::PLAY, false),
+        VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 512, 256, ButtonAction::BACK, true),
+        VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 768, 256, ButtonAction::FORWARD, true),
+        VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 512, ButtonAction::REWIND, true),
+        VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 512, ButtonAction::PAUSE, true)
 };
 
-Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTexturePlayerObj)
+Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
+                   jobject javaVideoTexturePlayerObj)
         : glInitialized(false),
           screenParamsChanged(false),
           deviceParamsChanged(false),
@@ -100,12 +122,14 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTextureP
           outputMode{},
           eyeMeshes{},
           viewMatrix{},
-          cardboardHeadTracker{} {
+          cardboardHeadTracker{},
+          javaVm(vm) {
     LOG_DEBUG("Renderer instance created");
 
     JNIEnv *env;
     vm->GetEnv((void **) &env, JNI_VERSION_1_6);
     javaContext = env->NewGlobalRef(javaContextObj);
+    javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
     javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
 
     Cardboard_initializeAndroid(vm, javaContextObj);
@@ -117,7 +141,14 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTextureP
 Renderer::~Renderer() {
     LOG_DEBUG("Renderer instance destroyed");
 
-    // TODO: deallocate javaContext, javaVideoTexturePlayer?
+    if (javaVm != nullptr) {
+        JNIEnv *env;
+        javaVm->GetEnv((void **) &env, JNI_VERSION_1_6);
+
+        env->DeleteGlobalRef(javaVideoTexturePlayer);
+        env->DeleteGlobalRef(javaAssetMgr);
+        env->DeleteGlobalRef(javaContext);
+    }
 }
 
 void Renderer::OnPause() {
@@ -145,6 +176,25 @@ void Renderer::SetScreenParams(int width, int height) {
     screenParamsChanged = true;
 }
 
+static void
+initStaticTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const std::string &path) {
+    glGenTextures(1, &textureId);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (!LoadPngFromAssetManager(env, java_asset_mgr, GL_TEXTURE_2D, path)) {
+        LOG_ERROR("Couldn't load texture");
+        return;
+    }
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    CHECK_GL_ERROR("Texture load");
+}
+
 static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId) {
     glGenTextures(1, &textureId);
     glActiveTexture(GL_TEXTURE0);
@@ -159,11 +209,6 @@ static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint
         return;
     }
     CHECK_GL_ERROR("Video texture init");
-}
-
-static void bindVideoTexture(GLuint textureId) {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
 }
 
 void Renderer::OnSurfaceCreated(JNIEnv *env) {
@@ -185,6 +230,23 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     CHECK_GL_ERROR("Video program params");
 
     initVideoTexture(env, javaVideoTexturePlayer, videoTexture);
+
+    const GLuint vertexShaderVRGui = LoadGLShader(GL_VERTEX_SHADER, kVertexShader);
+    const GLuint fragmentShaderVRGui = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShaderVRGui);
+
+    programVRGui = glCreateProgram();
+    glAttachShader(programVRGui, vertexShaderVRGui);
+    glAttachShader(programVRGui, fragmentShaderVRGui);
+    glLinkProgram(programVRGui);
+    glUseProgram(programVRGui);
+    CHECK_GL_ERROR("VR Gui program");
+
+    programVRGuiParamPosition = glGetAttribLocation(programVRGui, "a_Position");
+    programVRGuiParamUV = glGetAttribLocation(programVRGui, "a_UV");
+    programVRGuiParamMVPMatrix = glGetUniformLocation(programVRGui, "u_MVP");
+    CHECK_GL_ERROR("VR Gui program params");
+
+    initStaticTexture(env, javaAssetMgr, buttonTexture, "buttons-texture.png");
 
     const GLuint vertexShader2D = LoadGLShader(GL_VERTEX_SHADER, kVertexShader2D);
     const GLuint fragmentShader2D = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShader2D);
@@ -245,7 +307,8 @@ void Renderer::DrawFrame() {
     CHECK_GL_ERROR("Params");
 
     for (int eye = minEye; eye <= maxEye; ++eye) {
-        bindVideoTexture(videoTexture);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, videoTexture);
         glUseProgram(programVideo);
         glViewport((eye - minEye) * eyeWidth, 0, eyeWidth, screenHeight);
 
@@ -255,6 +318,13 @@ void Renderer::DrawFrame() {
         eyeMeshes[eye].Render(programVideoParamPosition, programVideoParamUV);
 
         if (pointerShown) {
+            glUseProgram(programVRGui);
+            glBindTexture(GL_TEXTURE_2D, buttonTexture);
+            glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+            for (const VRGuiButton &button: vrGuiButtons) {
+                button.Render(programVRGuiParamPosition, programVRGuiParamUV);
+            }
+
             glUseProgram(program2D);
             RenderPointer();
         }
@@ -279,7 +349,8 @@ void Renderer::DrawFrame() {
 }
 
 static constexpr std::array<float, 3> pointerCoords = {0.0f, 0.0f, 0.5f};
-static constexpr std::array<float, 6> cardboardAlignLineCoords = {0.0f, -0.2f, 0.5f, 0.0f, -1.0f, 0.5f};
+static constexpr std::array<float, 6> cardboardAlignLineCoords = {0.0f, -0.2f, 0.5f, 0.0f, -1.0f,
+                                                                  0.5f};
 static constexpr GLubyte trivial2DData[] = {0, 1};
 
 void Renderer::RenderPointer() {
@@ -292,7 +363,8 @@ void Renderer::RenderPointer() {
 
 void Renderer::RenderCardboardAlignLine() {
     glEnableVertexAttribArray(program2DParamPosition);
-    glVertexAttribPointer(program2DParamPosition, 3, GL_FLOAT, GL_FALSE, 0, cardboardAlignLineCoords.data());
+    glVertexAttribPointer(program2DParamPosition, 3, GL_FLOAT, GL_FALSE, 0,
+                          cardboardAlignLineCoords.data());
 
     glDrawElements(GL_LINES, 2, GL_UNSIGNED_BYTE, trivial2DData);
 }

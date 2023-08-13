@@ -6,6 +6,7 @@ import android.content.res.AssetManager
 object NativeLibrary {
     external fun nativeInit(
         context: Context,
+        assetManager: AssetManager,
         videoTexturePlayer: VideoTexturePlayer
     ): Long
 

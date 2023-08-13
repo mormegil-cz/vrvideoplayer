@@ -38,7 +38,8 @@ enum class OutputMode {
 
 class Renderer {
 public:
-    Renderer(JavaVM *vm, jobject javaContextObj, jobject javaVideoTexturePlayerObj);
+    Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
+             jobject javaVideoTexturePlayerObj);
 
     virtual ~Renderer();
 
@@ -58,7 +59,9 @@ public:
     void OnResume();
 
 private:
+    JavaVM *javaVm;
     jobject javaContext;
+    jobject javaAssetMgr;
     jobject javaVideoTexturePlayer;
 
     CardboardHeadTrackerPointer cardboardHeadTracker;
@@ -81,11 +84,16 @@ private:
     GLint programVideoParamPosition;
     GLint programVideoParamUV;
     GLint programVideoParamMVPMatrix;
+    GLuint programVRGui;
+    GLint programVRGuiParamPosition;
+    GLint programVRGuiParamUV;
+    GLint programVRGuiParamMVPMatrix;
     GLuint program2D;
     GLint program2DParamPosition;
 
     GLuint videoTexture;
     GLuint renderTexture;
+    GLuint buttonTexture;
 
     GLuint framebuffer;
 

@@ -15,7 +15,7 @@ public:
                  std::unique_ptr<GLfloat[]> vertexUV,
                  std::unique_ptr<GLushort[]> vertexIndex);
 
-    void Render(GLint programParamPosition, GLint programParamUV);
+    void Render(GLint programParamPosition, GLint programParamUV) const;
 
     class Builder {
     public:

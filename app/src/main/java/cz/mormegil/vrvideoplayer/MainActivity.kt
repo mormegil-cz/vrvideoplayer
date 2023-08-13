@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
 
         videoTexturePlayer = VideoTexturePlayer(this, videoUri)
 
-        nativeApp = NativeLibrary.nativeInit(this, videoTexturePlayer)
+        nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, binding.root).let { controller ->

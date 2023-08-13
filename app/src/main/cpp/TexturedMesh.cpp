@@ -23,7 +23,7 @@ TexturedMesh::TexturedMesh(GLsizei vertexCount,
         vertexIndex(std::move(vertexIndex)) {
 }
 
-void TexturedMesh::Render(GLint programParamPosition, GLint programParamUV) {
+void TexturedMesh::Render(GLint programParamPosition, GLint programParamUV) const {
     if (vertexCount == 0) {
         // uninitialized/empty mesh
         return;

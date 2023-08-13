@@ -67,7 +67,6 @@ void CheckGlError(const char *file, int line, const char *label) {
     }
 }
 
-// TODO: Delete?
 bool LoadPngFromAssetManager(JNIEnv *env, jobject java_asset_mgr, int target,
                              const std::string &path) {
     jclass bitmap_factory_class =

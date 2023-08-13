@@ -1,3 +1,5 @@
+- perf/power optimization: refactor to VBO
+
 - VR mode controls:
   - Probably shown by head up motion to show/hide controls (and pointer dot)
   - controls:
