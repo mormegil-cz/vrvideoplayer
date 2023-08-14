@@ -68,6 +68,8 @@ public:
 
     void OnResume();
 
+    void OnVideoSizeChanged(int width, int height);
+
 private:
     JavaVM *javaVm;
     jobject javaContext;
@@ -81,8 +83,11 @@ private:
     bool screenParamsChanged;
     bool deviceParamsChanged;
     int screenWidth;
-
     int screenHeight;
+    float screenAspect;
+    int videoWidth;
+    int videoHeight;
+    float videoAspect;
 
     bool glInitialized;
     InputVideoLayout inputVideoLayout;

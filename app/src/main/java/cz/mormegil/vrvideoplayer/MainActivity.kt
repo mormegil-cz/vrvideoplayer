@@ -1,5 +1,6 @@
 package cz.mormegil.vrvideoplayer
 
+import android.media.MediaPlayer
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
@@ -19,7 +20,7 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener {
     companion object {
         private const val TAG = "VRVideoPlayer"
     }
@@ -58,7 +59,7 @@ class MainActivity : AppCompatActivity() {
             videoTexturePlayer.seek(5000)
         }
 
-        videoTexturePlayer = VideoTexturePlayer(this, videoUri)
+        videoTexturePlayer = VideoTexturePlayer(this, videoUri, this)
 
         nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
 
@@ -228,7 +229,13 @@ class MainActivity : AppCompatActivity() {
         videoTexturePlayer.onDestroy()
     }
 
+    override fun onVideoSizeChanged(mp: MediaPlayer?, width: Int, height: Int) {
+        Log.d(TAG, "onVideoSizeChanged()")
+        NativeLibrary.nativeOnVideoSizeChanged(nativeApp, width, height);
+    }
+
     private inner class Renderer : GLSurfaceView.Renderer {
+
         override fun onSurfaceCreated(gl10: GL10?, config: EGLConfig?) {
             NativeLibrary.nativeOnSurfaceCreated(nativeApp)
         }
@@ -236,7 +243,6 @@ class MainActivity : AppCompatActivity() {
         override fun onSurfaceChanged(gl10: GL10?, width: Int, height: Int) {
             NativeLibrary.nativeSetScreenParams(nativeApp, width, height)
         }
-
         override fun onDrawFrame(gl10: GL10?) {
             videoTexturePlayer.updateIfNeeded()
             NativeLibrary.nativeDrawFrame(nativeApp)

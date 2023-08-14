@@ -18,7 +18,7 @@
 
 - GUI controls in 2D mode??
 
-- video aspect ratio in flat & panorama modes
+- vertical FOV (=> video aspect) in panorama modes??
 
 - Move input mode/layout settings to the file open dialog. (What with the initial app open? Probably
   depends on the default output mode? If VR, skip the current system gallery and just go to the VR

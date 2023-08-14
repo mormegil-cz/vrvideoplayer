@@ -184,6 +184,7 @@ void Renderer::SetScreenParams(int width, int height) {
 
     screenWidth = width;
     screenHeight = height;
+    screenAspect = (float) width / (float) height;
     screenParamsChanged = true;
 }
 
@@ -328,7 +329,8 @@ void Renderer::DrawFrame() {
         glUniformMatrix4fv(programVideoParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
 
         auto colorMapMatrix = BuildColorMapMatrix(eye);
-        glUniformMatrix4fv(programVideoParamColorMapMatrix, 1, GL_FALSE, glm::value_ptr(colorMapMatrix));
+        glUniformMatrix4fv(programVideoParamColorMapMatrix, 1, GL_FALSE,
+                           glm::value_ptr(colorMapMatrix));
 
         eyeMeshes[eye].Render(programVideoParamPosition, programVideoParamUV);
 
@@ -504,17 +506,25 @@ void Renderer::GlTeardown() {
 glm::mat4 Renderer::BuildMVPMatrix(int eye) {
     if (inputVideoMode == InputVideoMode::PLAIN_FOV) {
         // straight full-screen playback
-        return glm::mat4(1.0f);
+        const float aspectRate = screenAspect / videoAspect;
+        const float xScale = aspectRate > 1.0f ? 1.0f / aspectRate : 1.0f;
+        const float yScale = aspectRate > 1.0f ? 1.0f : aspectRate;
+        return {
+                xScale, 0.0f, 0.0f, 0.0f,
+                0.0f, yScale, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f,
+        };
     }
 
-    auto aspect = (float) screenWidth / (float) screenHeight;
     glm::mat4 projection;
     glm::mat4 view;
 
     switch (outputMode) {
         case OutputMode::MONO_LEFT:
         case OutputMode::MONO_RIGHT:
-            projection = glm::perspective(glm::radians(90.0f) / aspect, aspect, kzNear, kzFar);
+            projection = glm::perspective(glm::radians(90.0f) / screenAspect, screenAspect, kzNear,
+                                          kzFar);
             view = viewMatrix;
             break;
 
@@ -535,7 +545,7 @@ glm::mat4 Renderer::BuildColorMapMatrix(int eye) {
         return glm::mat4(1.0f);
     }
 
-    switch(eye) {
+    switch (eye) {
         case 0:
             // red
             return {
@@ -794,9 +804,20 @@ void Renderer::UpdatePose() {
     viewMatrix = glm::toMat4(headOrientationQuat);
 
     viewEulerAngles = glm::eulerAngles(headOrientationQuat);
+    static std::time_t lastUpdate = 0;
+    const std::time_t now = std::time(nullptr);
+    if (now > lastUpdate) {
+        LOG_DEBUG("UpdatePose: Q=[%.3f, %.3f, %.3f, %.3f], E=[%.0f, %.0f, %.0f]",
+                  headOrientationQuat.x, headOrientationQuat.y, headOrientationQuat.z,
+                  headOrientationQuat.w,
+                  glm::degrees(viewEulerAngles.x), glm::degrees(viewEulerAngles.y),
+                  glm::degrees(viewEulerAngles.z)
+        );
+        lastUpdate = now;
+    }
 
-    const float pitch = viewEulerAngles.x;
-    const float yaw = -viewEulerAngles.y;
+    const float pitch = -viewEulerAngles.x;
+    const float yaw = viewEulerAngles.y;
     if (isHeadGesturingUp) {
         if (pitch < HEAD_GESTURE_PITCH_LIMIT_RETURN) {
             // head moved from up to not-up
@@ -810,4 +831,11 @@ void Renderer::UpdatePose() {
             vrGuiCenterTheta = yaw;
         }
     }
+}
+
+void Renderer::OnVideoSizeChanged(int width, int height) {
+    videoWidth = width;
+    videoHeight = height;
+    videoAspect = (float) videoWidth / (float) videoHeight;
+    screenParamsChanged = true;
 }

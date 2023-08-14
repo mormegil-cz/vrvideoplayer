@@ -5,25 +5,20 @@ import android.graphics.SurfaceTexture
 import android.graphics.SurfaceTexture.OnFrameAvailableListener
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.media.MediaPlayer.OnVideoSizeChangedListener
 import android.net.Uri
-import android.opengl.GLES20
 import android.os.Build
-import android.provider.MediaStore.Audio.Media
 import android.util.Log
 import android.view.Surface
 import java.util.concurrent.atomic.AtomicBoolean
 
 
-class VideoTexturePlayer(private val context: Context, private val videoSourceUri: Uri) :
+class VideoTexturePlayer(private val context: Context,
+                         private val videoSourceUri: Uri,
+    private val videoSizeChangedListener: OnVideoSizeChangedListener) :
     OnFrameAvailableListener {
     companion object {
         private const val TAG = "VRVideoPlayerV"
-        private fun checkGLErrors(where: String) {
-            var error: Int
-            while (GLES20.glGetError().also { error = it } != GLES20.GL_NO_ERROR) {
-                Log.e(TAG, "GLError detected at $where: $error")
-            }
-        }
     }
 
     private var surfaceTexture: SurfaceTexture? = null
@@ -36,40 +31,28 @@ class VideoTexturePlayer(private val context: Context, private val videoSourceUr
         val surfaceTexture = SurfaceTexture(texName)
         this.surfaceTexture = surfaceTexture
         surfaceTexture.setOnFrameAvailableListener(this);
-        checkGLErrors("new SurfaceTexture")
 
         val mediaPlayer = MediaPlayer()
         this.mediaPlayer = mediaPlayer
+        mediaPlayer.setOnVideoSizeChangedListener(videoSizeChangedListener);
         mediaPlayer.setDataSource(context, videoSourceUri)
 
         val surface = Surface(surfaceTexture)
-        checkGLErrors("new Surface")
         mediaPlayer.setSurface(surface)
         surface.release()
-        checkGLErrors("MediaPlayer setSurface")
 
         mediaPlayer.prepare()
-        checkGLErrors("MediaPlayer prepare")
         /*
     mediaPlayer.setOnBufferingUpdateListener(this);
     mediaPlayer.setOnCompletionListener(this);
     mediaPlayer.setOnPreparedListener(this);
-    mediaPlayer.setOnVideoSizeChangedListener(this);
-     */
-        /*
-    mediaPlayer.setOnBufferingUpdateListener(this);
-    mediaPlayer.setOnCompletionListener(this);
-    mediaPlayer.setOnPreparedListener(this);
-    mediaPlayer.setOnVideoSizeChangedListener(this);
      */
         mediaPlayer.setAudioAttributes(
             AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
                 .build()
         )
-        checkGLErrors("mediaPlayer set")
         mediaPlayer.start()
-        checkGLErrors("mediaPlayer start")
 
         Log.d(TAG, "VideoTexturePlayer initialized with $videoSourceUri")
     }
@@ -96,7 +79,6 @@ class VideoTexturePlayer(private val context: Context, private val videoSourceUr
         val surfaceTexture = this.surfaceTexture
         this.surfaceTexture = null
         surfaceTexture?.release()
-        checkGLErrors("cleanup")
 
         Log.d(TAG, "VideoTexturePlayer cleaned up")
     }
