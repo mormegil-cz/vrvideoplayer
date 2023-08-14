@@ -28,6 +28,9 @@
         <item
             android:id="@+id/input_layout_stereo_vert"
             android:title="@string/input_layout_stereo_vert" />
+        <item
+            android:id="@+id/input_layout_anaglyph_red_cyan"
+            android:title="@string/input_layout_anaglyph_red_cyan" />
     </group>
     <group android:checkableBehavior="single">
         <item

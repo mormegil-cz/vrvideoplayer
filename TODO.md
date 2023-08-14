@@ -28,4 +28,4 @@
 - maybe VR view locking in some input modes? (e.g. for panoramas, limit to horizontal only; for 180°
   modes, do not (optionally?) allow to move beyond the edge?)
 
-- input mode for color anaglyph?? (would need configuration for red-cyan/red-green/cyan-red/green-red/…?)
+- more variants for anaglyph

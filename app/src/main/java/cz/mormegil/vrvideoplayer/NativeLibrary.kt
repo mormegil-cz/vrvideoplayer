@@ -35,6 +35,7 @@ enum class InputLayout {
     Mono,
     StereoHoriz,
     StereoVert,
+    AnaglyphRedCyan,
 }
 
 enum class InputMode {

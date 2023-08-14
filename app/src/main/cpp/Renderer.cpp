@@ -49,11 +49,12 @@ constexpr const char *kFragmentShader = R"glsl(#version 300 es
 precision mediump float;
 
 uniform samplerExternalOES u_Texture;
+uniform mat4 u_ColorMap;
 in vec2 v_UV;
 out vec4 fragColor;
 
 void main() {
-  fragColor = texture(u_Texture, v_UV);
+  fragColor = u_ColorMap * texture(u_Texture, v_UV);
 })glsl";
 
 constexpr const char *kFragmentShaderVRGui = R"glsl(#version 300 es
@@ -237,6 +238,7 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     programVideoParamPosition = glGetAttribLocation(programVideo, "a_Position");
     programVideoParamUV = glGetAttribLocation(programVideo, "a_UV");
     programVideoParamMVPMatrix = glGetUniformLocation(programVideo, "u_MVP");
+    programVideoParamColorMapMatrix = glGetUniformLocation(programVideo, "u_ColorMap");
     CHECK_GL_ERROR("Video program params");
 
     initVideoTexture(env, javaVideoTexturePlayer, videoTexture);
@@ -324,6 +326,9 @@ void Renderer::DrawFrame() {
 
         auto mvpMatrix = BuildMVPMatrix(eye);
         glUniformMatrix4fv(programVideoParamMVPMatrix, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+
+        auto colorMapMatrix = BuildColorMapMatrix(eye);
+        glUniformMatrix4fv(programVideoParamColorMapMatrix, 1, GL_FALSE, glm::value_ptr(colorMapMatrix));
 
         eyeMeshes[eye].Render(programVideoParamPosition, programVideoParamUV);
 
@@ -525,6 +530,35 @@ glm::mat4 Renderer::BuildMVPMatrix(int eye) {
     return projection * view;
 }
 
+glm::mat4 Renderer::BuildColorMapMatrix(int eye) {
+    if (inputVideoLayout != InputVideoLayout::ANAGLYPH_RED_CYAN) {
+        return glm::mat4(1.0f);
+    }
+
+    switch(eye) {
+        case 0:
+            // red
+            return {
+                    1.0f, 1.0f, 1.0f, 0.0f,
+                    0.0f, 0.0f, 0.0f, 0.0f,
+                    0.0f, 0.0f, 0.0f, 0.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f,
+            };
+
+        case 1:
+            // cyan
+            return {
+                    0.0f, 0.0f, 0.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f, 0.0f,
+                    0.0f, 0.0f, 1.0f, 0.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f,
+            };
+
+        default:
+            assert(false);
+    }
+}
+
 void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
                           OutputMode outputMode) {
     LOG_DEBUG("SetOptions(%d, %d, %d)", layout, inputMode, outputMode);
@@ -628,6 +662,7 @@ void Renderer::ComputeMesh() {
         float uvLeft, uvTop, uvRight, uvBottom;
         switch (inputVideoLayout) {
             case InputVideoLayout::MONO:
+            case InputVideoLayout::ANAGLYPH_RED_CYAN:
                 uvLeft = 0.0f;
                 uvRight = 1.0f;
                 uvTop = 0.0f;

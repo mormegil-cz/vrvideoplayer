@@ -13,12 +13,19 @@
 #include "TexturedMesh.h"
 #include "GLUtils.h"
 
+/**
+ * Is the input video monoscopic or stereoscopic, and if stereoscopic, how are the views stored?
+ */
 enum class InputVideoLayout {
     MONO = 1,
     STEREO_HORIZ = 2,
     STEREO_VERT = 3,
+    ANAGLYPH_RED_CYAN = 4,
 };
 
+/**
+ * What is the geometry of the input video?
+ */
 enum class InputVideoMode {
     PLAIN_FOV = 1,
     EQUIRECT_180 = 2,
@@ -30,6 +37,9 @@ enum class InputVideoMode {
     PANORAMA_360 = 8,
 };
 
+/**
+ * How we should render the output?
+ */
 enum class OutputMode {
     MONO_LEFT = 1,
     MONO_RIGHT = 2,
@@ -84,6 +94,7 @@ private:
     GLint programVideoParamPosition;
     GLint programVideoParamUV;
     GLint programVideoParamMVPMatrix;
+    GLint programVideoParamColorMapMatrix;
     GLuint programVRGui;
     GLint programVRGuiParamPosition;
     GLint programVRGuiParamUV;
@@ -125,6 +136,7 @@ private:
     void RenderCardboardAlignLine();
 
     glm::mat4 BuildMVPMatrix(int eye);
+    glm::mat4 BuildColorMapMatrix(int eye);
 };
 
 #endif //VRVIDEOPLAYER_RENDERER_H

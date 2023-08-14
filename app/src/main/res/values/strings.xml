@@ -14,4 +14,5 @@
     <string name="input_mode_equirect_360">360° equirectangular</string>
     <string name="input_mode_panorama_180">180° panorama</string>
     <string name="input_mode_panorama_360">360° panorama</string>
+    <string name="input_layout_anaglyph_red_cyan">Anaglyph, red–cyan</string>
 </resources>

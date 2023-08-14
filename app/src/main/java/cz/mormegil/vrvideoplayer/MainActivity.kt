@@ -108,6 +108,11 @@ class MainActivity : AppCompatActivity() {
                     return@setOnMenuItemClickListener true
                 }
 
+                R.id.input_layout_anaglyph_red_cyan -> {
+                    setInputLayout(InputLayout.AnaglyphRedCyan, item)
+                    return@setOnMenuItemClickListener true
+                }
+
                 R.id.input_mode_plain_fov -> {
                     setInputMode(InputMode.PlainFov, item)
                     return@setOnMenuItemClickListener true
