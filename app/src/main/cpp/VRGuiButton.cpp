@@ -11,9 +11,9 @@ constexpr std::array<GLubyte, 4> quadFanIndices = {0, 1, 2, 3};
 
 static std::array<GLfloat, 3> sphericalToCartesian(float theta, float phi, float r) {
     return {
-            r * cosf(phi) * cosf(-theta),
+            r * cosf(phi) * sinf(-theta),
             r * sinf(phi),
-            r * cosf(phi) * sinf(-theta)
+            r * cosf(phi) * cosf(-theta)
     };
 }
 
@@ -21,13 +21,13 @@ static std::array<GLfloat, 12>
 computeVertexPos(float centerTheta, float centerPhi, float centerDistance, float sizeAlpha) {
     float alpha2 = sizeAlpha * 0.5f;
     float vertexDistance = centerDistance / cosf(alpha2);
-    std::array<GLfloat, 3> v0 = sphericalToCartesian(centerTheta - alpha2, centerPhi - alpha2,
+    std::array<GLfloat, 3> v0 = sphericalToCartesian(centerTheta - alpha2, centerPhi + alpha2,
                                                      vertexDistance);
-    std::array<GLfloat, 3> v1 = sphericalToCartesian(centerTheta - alpha2, centerPhi + alpha2,
+    std::array<GLfloat, 3> v1 = sphericalToCartesian(centerTheta - alpha2, centerPhi - alpha2,
                                                      vertexDistance);
-    std::array<GLfloat, 3> v2 = sphericalToCartesian(centerTheta + alpha2, centerPhi + alpha2,
+    std::array<GLfloat, 3> v2 = sphericalToCartesian(centerTheta + alpha2, centerPhi - alpha2,
                                                      vertexDistance);
-    std::array<GLfloat, 3> v3 = sphericalToCartesian(centerTheta + alpha2, centerPhi - alpha2,
+    std::array<GLfloat, 3> v3 = sphericalToCartesian(centerTheta + alpha2, centerPhi + alpha2,
                                                      vertexDistance);
     return {
             v0[0], v0[1], v0[2],

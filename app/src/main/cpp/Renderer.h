@@ -120,7 +120,8 @@ private:
     std::array<TexturedMesh, 2> eyeMeshes;
 
     glm::mat4 viewMatrix;
-    glm::vec3 viewEulerAngles;
+    float yaw;
+    float pitch;
 
     bool vrGuiShown = false;
     bool isHeadGesturingUp = false;

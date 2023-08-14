@@ -93,6 +93,7 @@ static constexpr float HEAD_GESTURE_PITCH_LIMIT = glm::radians(60.0f);
 static constexpr float HEAD_GESTURE_PITCH_LIMIT_RETURN = glm::radians(45.0f);
 
 static constexpr glm::vec3 Y_AXIS = {0.0f, 1.0f, 0.0f};
+static constexpr glm::vec4 NEG_Z_AXIS = {0.0f, 0.0f, -1.0f, 1.0f};
 
 static constexpr std::array<float, 3> pointerCoords = {0.0f, 0.0f, VR_GUI_DISTANCE};
 static constexpr std::array<float, 6> cardboardAlignLineCoords = {0.0f, -0.2f, 0.5f, 0.0f, -1.0f,
@@ -337,7 +338,10 @@ void Renderer::DrawFrame() {
         if (vrGuiShown) {
             glUseProgram(programVRGui);
             glBindTexture(GL_TEXTURE_2D, buttonTexture);
-            glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, vrGuiCenterTheta, Y_AXIS);
+            glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, (float) M_PI - vrGuiCenterTheta,
+                                                 Y_AXIS);
+//            glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, vrGuiCenterTheta - viewEulerAngles.y,
+//                                                 Y_AXIS);
             glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE,
                                glm::value_ptr(guiMvpMatrix));
             for (const VRGuiButton &button: vrGuiButtons) {
@@ -803,25 +807,21 @@ void Renderer::UpdatePose() {
     // viewMatrix = glm::translate(toMat4(headOrientationQuat), headPosition);
     viewMatrix = glm::toMat4(headOrientationQuat);
 
-    viewEulerAngles = glm::eulerAngles(headOrientationQuat);
-    static std::time_t lastUpdate = 0;
-    const std::time_t now = std::time(nullptr);
-    if (now > lastUpdate) {
-        LOG_DEBUG("UpdatePose: Q=[%.3f, %.3f, %.3f, %.3f], E=[%.0f, %.0f, %.0f]",
-                  headOrientationQuat.x, headOrientationQuat.y, headOrientationQuat.z,
-                  headOrientationQuat.w,
-                  glm::degrees(viewEulerAngles.x), glm::degrees(viewEulerAngles.y),
-                  glm::degrees(viewEulerAngles.z)
-        );
-        lastUpdate = now;
+    const glm::vec4 pointVector = NEG_Z_AXIS * viewMatrix;
+    pitch = asinf(pointVector.y);
+    const float cosPitch = cosf(pitch);
+    if (fabs(cosPitch) <= 0.01f) {
+        // too vertical: just keep the previous yaw
+    } else {
+        const float cosPitchInv = 1.0f / cosPitch;
+        yaw = -atan2f(pointVector.x * cosPitchInv, pointVector.z * cosPitchInv);
     }
 
-    const float pitch = -viewEulerAngles.x;
-    const float yaw = viewEulerAngles.y;
     if (isHeadGesturingUp) {
         if (pitch < HEAD_GESTURE_PITCH_LIMIT_RETURN) {
             // head moved from up to not-up
             isHeadGesturingUp = false;
+            LOG_DEBUG("UpdatePose: Moved from up to not-up");
         }
     } else {
         if (pitch > HEAD_GESTURE_PITCH_LIMIT) {
@@ -829,6 +829,7 @@ void Renderer::UpdatePose() {
             isHeadGesturingUp = true;
             vrGuiShown = !vrGuiShown;
             vrGuiCenterTheta = yaw;
+            LOG_DEBUG("UpdatePose: Moved from not-up to up");
         }
     }
 }
