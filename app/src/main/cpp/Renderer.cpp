@@ -28,7 +28,7 @@
 
 #define LOG_TAG "VRVideoPlayerR"
 
-constexpr uint64_t kPredictionTimeWithoutVsyncNanos = 50000000UL;
+constexpr uint64_t kPredictionTimeWithoutVsyncNanos = 50'000'000UL;
 constexpr float kzNear = 0.1f;
 constexpr float kzFar = 2.0f;
 
@@ -83,6 +83,8 @@ out vec4 fragColor;
 void main() {
   fragColor = vec4(1.0);
 })glsl";
+
+static constexpr float M_TWO_PI = (float) M_PI * 2.0f;
 
 static constexpr float VR_GUI_BUTTON_GRID = M_PI * 8 / 180.0f;
 static constexpr float VR_GUI_BUTTON_SIZE = M_PI * 7 / 180.0f;
@@ -340,8 +342,6 @@ void Renderer::DrawFrame() {
             glBindTexture(GL_TEXTURE_2D, buttonTexture);
             glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, (float) M_PI - vrGuiCenterTheta,
                                                  Y_AXIS);
-//            glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, vrGuiCenterTheta - viewEulerAngles.y,
-//                                                 Y_AXIS);
             glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE,
                                glm::value_ptr(guiMvpMatrix));
             for (const VRGuiButton &button: vrGuiButtons) {
@@ -830,6 +830,15 @@ void Renderer::UpdatePose() {
             vrGuiShown = !vrGuiShown;
             vrGuiCenterTheta = yaw;
             LOG_DEBUG("UpdatePose: Moved from not-up to up");
+        }
+    }
+
+    if (vrGuiShown) {
+        for (const VRGuiButton &button: vrGuiButtons) {
+            ButtonAction hitAction = button.evaluatePossibleHit(yaw - vrGuiCenterTheta, pitch);
+            if (hitAction != ButtonAction::NONE) {
+                // executeButtonAction(hitAction);
+            }
         }
     }
 }

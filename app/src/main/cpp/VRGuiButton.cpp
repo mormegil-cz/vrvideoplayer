@@ -5,6 +5,10 @@
 
 #include <GLES2/gl2.h>
 
+#include "logger.h"
+
+#define LOG_TAG "VRVideoPlayerB"
+
 constexpr float BUTTON_TEXTURE_SIZE = 1024.0f;
 
 constexpr std::array<GLubyte, 4> quadFanIndices = {0, 1, 2, 3};
@@ -71,4 +75,16 @@ void VRGuiButton::Render(GLint programParamPosition, GLint programParamUV) const
 
     glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_BYTE, quadFanIndices.data());
     //CHECK_GL_ERROR("Render button");
+}
+
+ButtonAction VRGuiButton::evaluatePossibleHit(float viewTheta, float viewPhi) const {
+    if (!visible) return ButtonAction::NONE;
+
+    if ((fabsf(viewTheta - centerTheta) * 2.0f < sizeAlpha) &&
+        (fabsf((viewPhi - centerPhi) * 2.0f) < sizeAlpha)) {
+        // TODO: waiting time, etc.
+        LOG_DEBUG("Hit button %d", action);
+    }
+
+    return ButtonAction::NONE;
 }

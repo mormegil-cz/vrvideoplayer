@@ -4,6 +4,7 @@
 #include <array>
 
 #include <GLES2/gl2.h>
+#include "glm/vec4.hpp"
 
 enum class ButtonAction {
     NONE,
@@ -25,6 +26,8 @@ public:
                 int textureYPos, ButtonAction action, bool visible);
 
     void Render(GLint programParamPosition, GLint programParamUV) const;
+
+    ButtonAction evaluatePossibleHit(float viewTheta, float viewPhi) const;
 
 private:
     float centerTheta;
