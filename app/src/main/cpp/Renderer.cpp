@@ -809,12 +809,10 @@ void Renderer::UpdatePose() {
 
     const glm::vec4 pointVector = NEG_Z_AXIS * viewMatrix;
     pitch = asinf(pointVector.y);
-    const float cosPitch = cosf(pitch);
-    if (fabs(cosPitch) <= 0.01f) {
+    if (pitch > 1.55f) { // roughly 88.8°
         // too vertical: just keep the previous yaw
     } else {
-        const float cosPitchInv = 1.0f / cosPitch;
-        yaw = -atan2f(pointVector.x * cosPitchInv, pointVector.z * cosPitchInv);
+        yaw = -atan2f(pointVector.x, pointVector.z);
     }
 
     if (isHeadGesturingUp) {
