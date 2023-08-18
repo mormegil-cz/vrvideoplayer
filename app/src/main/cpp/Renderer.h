@@ -46,6 +46,10 @@ enum class OutputMode {
     CARDBOARD_STEREO = 3,
 };
 
+inline bool isOutputModeMono(const OutputMode mode) {
+    return mode == OutputMode::MONO_LEFT || mode == OutputMode::MONO_RIGHT;
+}
+
 class Renderer {
 public:
     Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,

@@ -10,7 +10,8 @@ class TexturedMesh {
 public:
     TexturedMesh();
 
-    TexturedMesh(GLsizei vertexCount,
+    TexturedMesh(GLenum mode,
+                 GLsizei vertexCount,
                  std::unique_ptr<GLfloat[]> vertexPos,
                  std::unique_ptr<GLfloat[]> vertexUV,
                  std::unique_ptr<GLushort[]> vertexIndex);
@@ -32,6 +33,7 @@ public:
     };
 
 private:
+    GLenum mode;
     GLsizei vertexCount;
     std::unique_ptr<GLfloat[]> vertexPos;
     std::unique_ptr<GLfloat[]> vertexUV;

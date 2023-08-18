@@ -86,6 +86,8 @@ void main() {
 
 static constexpr float M_TWO_PI = (float) M_PI * 2.0f;
 
+static constexpr float PLAIN_FOV_Z = -1.0f;
+
 static constexpr float VR_GUI_BUTTON_GRID = M_PI * 8 / 180.0f;
 static constexpr float VR_GUI_BUTTON_SIZE = M_PI * 7 / 180.0f;
 static constexpr float VR_GUI_BUTTON_PHI_0 = -0.5f * VR_GUI_BUTTON_GRID;
@@ -508,17 +510,8 @@ void Renderer::GlTeardown() {
 }
 
 glm::mat4 Renderer::BuildMVPMatrix(int eye) {
-    if (inputVideoMode == InputVideoMode::PLAIN_FOV) {
-        // straight full-screen playback
-        const float aspectRate = screenAspect / videoAspect;
-        const float xScale = aspectRate > 1.0f ? 1.0f / aspectRate : 1.0f;
-        const float yScale = aspectRate > 1.0f ? 1.0f : aspectRate;
-        return {
-                xScale, 0.0f, 0.0f, 0.0f,
-                0.0f, yScale, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0f, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f,
-        };
+    if (inputVideoMode == InputVideoMode::PLAIN_FOV && isOutputModeMono(outputMode)) {
+        return glm::mat4(1.0f);
     }
 
     glm::mat4 projection;
@@ -703,11 +696,15 @@ void Renderer::ComputeMesh() {
 
         switch (inputVideoMode) {
             case InputVideoMode::PLAIN_FOV: {
+                // plain rectangle
+                const float xScale = videoAspect > 1.0f ? 1.0f : (1.0f / videoAspect);
+                const float yScale = videoAspect > 1.0f ? (1.0f / videoAspect) : 1.0f;
+
                 std::unique_ptr<GLfloat[]> pos{new GLfloat[12]{
-                        -1.0f, +1.0f, -0.5f,
-                        +1.0f, +1.0f, -0.5f,
-                        +1.0f, -1.0f, -0.5f,
-                        -1.0f, -1.0f, -0.5f
+                        -xScale, +yScale, PLAIN_FOV_Z,
+                        +xScale, +yScale, PLAIN_FOV_Z,
+                        +xScale, -yScale, PLAIN_FOV_Z,
+                        -xScale, -yScale, PLAIN_FOV_Z
                 }};
                 std::unique_ptr<GLfloat[]> uv{new GLfloat[8]{
                         uvLeft, uvTop,
@@ -722,6 +719,7 @@ void Renderer::ComputeMesh() {
 
                 eyeMeshes[eye] =
                         TexturedMesh(
+                                GL_TRIANGLES,
                                 6,
                                 std::move(pos),
                                 std::move(uv),
@@ -783,6 +781,7 @@ void Renderer::ComputeMesh() {
 
                 eyeMeshes[eye] =
                         TexturedMesh(
+                                GL_TRIANGLES,
                                 36,
                                 std::move(pos),
                                 std::move(uv),
