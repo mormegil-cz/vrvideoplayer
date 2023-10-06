@@ -17,6 +17,7 @@
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/gtx/quaternion.hpp"
+#include "glm/gtx/matrix_operation.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/scalar_constants.hpp"
@@ -511,7 +512,15 @@ void Renderer::GlTeardown() {
 
 glm::mat4 Renderer::BuildMVPMatrix(int eye) {
     if (inputVideoMode == InputVideoMode::PLAIN_FOV && isOutputModeMono(outputMode)) {
-        return glm::mat4(1.0f);
+        const float xScale = screenAspect > 1.0f ? 1.0f : screenAspect;
+        const float yScale = screenAspect > 1.0f ? screenAspect : 1.0f;
+
+        return glm::diagonal4x4(glm::vec4(
+                xScale,
+                yScale,
+                1.0f,
+                1.0f
+        ));
     }
 
     glm::mat4 projection;

@@ -17,6 +17,7 @@
     - Next/Prev paging, OK button, Exit button, input file mode chooser, input layout chooser
 
 - GUI controls in 2D mode??
+  - including file type switching (currently available (temporarily??) in cogwheel menu)
 
 - vertical FOV (=> video aspect) in panorama modes??
 
