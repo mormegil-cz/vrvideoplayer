@@ -118,10 +118,20 @@ Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeScanCardboardQr(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeDrawFrame(
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeShowProgressBar(
         JNIEnv * /* jenv */,
         jobject /* this */,
         jlong native_app) {
+    LOG_DEBUG("nativeShowProgressBar");
+    fromJava(native_app)->ShowProgressBar();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeDrawFrame(
+        JNIEnv * /* jenv */,
+        jobject /* this */,
+        jlong native_app,
+        jfloat video_position) {
     // LOG_DEBUG("nativeDrawFrame");
-    fromJava(native_app)->DrawFrame();
+    fromJava(native_app)->DrawFrame(video_position);
 }

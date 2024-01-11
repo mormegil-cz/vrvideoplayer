@@ -36,6 +36,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         Renderer.cpp
         TexturedMesh.cpp
         VRGuiButton.cpp
+        VRGuiProgressBar.cpp
         GLUtils.cpp
         )
 

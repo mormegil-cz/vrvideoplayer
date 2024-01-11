@@ -1,11 +1,14 @@
 package cz.mormegil.vrvideoplayer
 
+import android.annotation.SuppressLint
+import android.graphics.PointF
 import android.media.MediaPlayer
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.RelativeLayout
@@ -18,6 +21,7 @@ import cz.mormegil.vrvideoplayer.databinding.ActivityMainBinding
 import java.lang.IllegalArgumentException
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.math.roundToInt
 
 
 class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener {
@@ -34,6 +38,9 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
     private var inputMode: InputMode = InputMode.PlainFov
     private var outputMode: OutputMode = OutputMode.MonoLeft
 
+    private var lastTouchCoordinates = arrayOf(1.0f, 0.0f);
+
+    @SuppressLint("ClickableViewAccessibility") // VR video really does not support accessibility
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -55,8 +62,23 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
         val renderer = Renderer()
         glView.setRenderer(renderer)
         glView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+        glView.setOnTouchListener { _, event ->
+            // save the X,Y coordinates
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                lastTouchCoordinates[0] = event.x;
+                lastTouchCoordinates[1] = event.y;
+            }
+
+            // let the touch event pass on to whoever needs it
+            return@setOnTouchListener false
+        }
         glView.setOnClickListener {
-            videoTexturePlayer.seek(5000)
+            val x = lastTouchCoordinates[0];
+            val halfWidth = glView.width.coerceAtLeast(1) * 0.5f
+            val relX = (x - halfWidth) / halfWidth
+
+            videoTexturePlayer.seek((10000 * relX).roundToInt())
+            NativeLibrary.nativeShowProgressBar(nativeApp)
         }
 
         videoTexturePlayer = VideoTexturePlayer(this, videoUri, this)
@@ -235,7 +257,6 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
     }
 
     private inner class Renderer : GLSurfaceView.Renderer {
-
         override fun onSurfaceCreated(gl10: GL10?, config: EGLConfig?) {
             NativeLibrary.nativeOnSurfaceCreated(nativeApp)
         }
@@ -243,9 +264,10 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
         override fun onSurfaceChanged(gl10: GL10?, width: Int, height: Int) {
             NativeLibrary.nativeSetScreenParams(nativeApp, width, height)
         }
+
         override fun onDrawFrame(gl10: GL10?) {
             videoTexturePlayer.updateIfNeeded()
-            NativeLibrary.nativeDrawFrame(nativeApp)
+            NativeLibrary.nativeDrawFrame(nativeApp, videoTexturePlayer.getVideoPosition())
         }
     }
 }

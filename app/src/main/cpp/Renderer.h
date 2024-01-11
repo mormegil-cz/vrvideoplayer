@@ -64,9 +64,11 @@ public:
 
     void ScanCardboardQr();
 
+    void ShowProgressBar();
+
     void SetScreenParams(int width, int height);
 
-    void DrawFrame();
+    void DrawFrame(float videoPosition);
 
     void OnPause();
 
@@ -128,6 +130,7 @@ private:
     float pitch;
 
     bool vrGuiShown = false;
+    bool vrProgressBarShown = false;
     bool isHeadGesturingUp = false;
     float vrGuiCenterTheta = 0.0f;
 

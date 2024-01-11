@@ -38,7 +38,7 @@ void TexturedMesh::Render(GLint programParamPosition, GLint programParamUV) cons
     glVertexAttribPointer(programParamUV, 2, GL_FLOAT, GL_FALSE, 0, vertexUV.get());
 
     glDrawElements(mode, vertexCount, GL_UNSIGNED_SHORT, vertexIndex.get());
-    //CHECK_GL_ERROR("Render");
+    //CHECK_GL_ERROR("render");
 }
 
 GLushort TexturedMesh::Builder::add_vertex(float x, float y, float z, float u, float v) {

@@ -65,7 +65,7 @@ VRGuiButton::VRGuiButton(float centerTheta, float centerPhi, float centerDistanc
           visible(visible) {
 }
 
-void VRGuiButton::Render(GLint programParamPosition, GLint programParamUV) const {
+void VRGuiButton::render(GLint programParamPosition, GLint programParamUV) const {
     if (!visible) return;
 
     glEnableVertexAttribArray(programParamPosition);
@@ -74,7 +74,7 @@ void VRGuiButton::Render(GLint programParamPosition, GLint programParamUV) const
     glVertexAttribPointer(programParamUV, 2, GL_FLOAT, GL_FALSE, 0, vertexUV.data());
 
     glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_BYTE, quadFanIndices.data());
-    //CHECK_GL_ERROR("Render button");
+    //CHECK_GL_ERROR("render button");
 }
 
 ButtonAction VRGuiButton::evaluatePossibleHit(float viewTheta, float viewPhi) const {
@@ -87,4 +87,8 @@ ButtonAction VRGuiButton::evaluatePossibleHit(float viewTheta, float viewPhi) co
     }
 
     return ButtonAction::NONE;
+}
+
+void VRGuiButton::setVisible(bool visible) {
+    this->visible = visible;
 }

@@ -15,16 +15,19 @@ object NativeLibrary {
     external fun nativeOnDestroy(nativeApp: Long)
     external fun nativeOnSurfaceCreated(nativeApp: Long)
     external fun nativeSetScreenParams(nativeApp: Long, width: Int, height: Int)
-    external fun nativeOnVideoSizeChanged(nativeApp: Long, width: Int, height: Int);
-    external fun nativeScanCardboardQr(nativeApp: Long);
-
+    external fun nativeOnVideoSizeChanged(nativeApp: Long, width: Int, height: Int)
+    external fun nativeScanCardboardQr(nativeApp: Long)
+    external fun nativeShowProgressBar(nativeApp: Long)
     external fun nativeSetOptions(
         nativeApp: Long,
         inputLayout: Int,
         inputMode: Int,
         outputMode: Int
-    );
-    external fun nativeDrawFrame(nativeApp: Long);
+    )
+    external fun nativeDrawFrame(
+        nativeApp: Long,
+        videoPosition: Float
+    )
 
     init {
         System.loadLibrary("vrvideoplayer")

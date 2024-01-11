@@ -23,6 +23,7 @@ class VideoTexturePlayer(private val context: Context,
 
     private var surfaceTexture: SurfaceTexture? = null
     private var mediaPlayer: MediaPlayer? = null
+    private var videoPosition: Float = 0.0f
     private val frameAvailable: AtomicBoolean = AtomicBoolean(false)
 
     fun initializePlayback(texName: Int) {
@@ -69,6 +70,10 @@ class VideoTexturePlayer(private val context: Context,
         }
     }
 
+    fun getVideoPosition(): Float {
+        return videoPosition
+    }
+
     private fun cleanup() {
         val mediaPlayer = this.mediaPlayer
         this.mediaPlayer = null
@@ -99,6 +104,14 @@ class VideoTexturePlayer(private val context: Context,
     }
 
     override fun onFrameAvailable(tex: SurfaceTexture?) {
+        // should always be non-null, but whatever
+        val mp = mediaPlayer
+        if (mp != null) {
+            val position = mp.currentPosition.toFloat()
+            val duration = mp.duration.coerceAtLeast(1).toFloat()
+            videoPosition = position / duration;
+        }
+
         frameAvailable.set(true)
     }
 

@@ -25,9 +25,11 @@ public:
     VRGuiButton(float centerTheta, float centerPhi, float centerDistance, float sizeAlpha, int textureXPos,
                 int textureYPos, ButtonAction action, bool visible);
 
-    void Render(GLint programParamPosition, GLint programParamUV) const;
+    void render(GLint programParamPosition, GLint programParamUV) const;
 
     ButtonAction evaluatePossibleHit(float viewTheta, float viewPhi) const;
+
+    void setVisible(bool visible);
 
 private:
     float centerTheta;

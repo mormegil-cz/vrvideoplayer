@@ -26,6 +26,7 @@
 #include "VRGuiButton.h"
 #include "GLUtils.h"
 #include "logger.h"
+#include "VRGuiProgressBar.h"
 
 #define LOG_TAG "VRVideoPlayerR"
 
@@ -97,6 +98,8 @@ static constexpr float VR_GUI_DISTANCE = kzFar * 0.4f;
 static constexpr float HEAD_GESTURE_PITCH_LIMIT = glm::radians(60.0f);
 static constexpr float HEAD_GESTURE_PITCH_LIMIT_RETURN = glm::radians(45.0f);
 
+static constexpr int PROGRESS_BAR_SHOW_TIME = 3;
+
 static constexpr glm::vec3 Y_AXIS = {0.0f, 1.0f, 0.0f};
 static constexpr glm::vec4 NEG_Z_AXIS = {0.0f, 0.0f, -1.0f, 1.0f};
 
@@ -127,6 +130,9 @@ static std::array<VRGuiButton, 10> vrGuiButtons{
         VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
                     VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 512, ButtonAction::PAUSE, true)
 };
+
+static VRGuiProgressBar vrGuiProgressBar(0, 3 * VR_GUI_BUTTON_GRID, 6 * VR_GUI_BUTTON_GRID, 0.5f * VR_GUI_BUTTON_GRID);
+static time_t vrGuiProgressBarHideAt;
 
 Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
                    jobject javaVideoTexturePlayerObj)
@@ -281,7 +287,7 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     CHECK_GL_ERROR("2D program params");
 }
 
-void Renderer::DrawFrame() {
+void Renderer::DrawFrame(float videoPosition) {
     if (!UpdateDeviceParams()) {
         return;
     }
@@ -325,6 +331,16 @@ void Renderer::DrawFrame() {
     glClear(GL_COLOR_BUFFER_BIT);
     CHECK_GL_ERROR("Params");
 
+    time_t now = time_t(0);
+    if (vrProgressBarShown) {
+        if (now >= vrGuiProgressBarHideAt) {
+            LOG_DEBUG("Hiding progress bar");
+            vrProgressBarShown = false;
+        } else {
+            vrGuiProgressBar.setProgress(videoPosition);
+        }
+    }
+
     for (int eye = minEye; eye <= maxEye; ++eye) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_EXTERNAL_OES, videoTexture);
@@ -340,6 +356,15 @@ void Renderer::DrawFrame() {
 
         eyeMeshes[eye].Render(programVideoParamPosition, programVideoParamUV);
 
+        if (vrProgressBarShown) {
+            glUseProgram(program2D);
+            glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, (float) M_PI - vrGuiCenterTheta,
+                                                 Y_AXIS);
+            glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE,
+                               glm::value_ptr(guiMvpMatrix));
+            vrGuiProgressBar.render(program2DParamPosition);
+        }
+
         if (vrGuiShown) {
             glUseProgram(programVRGui);
             glBindTexture(GL_TEXTURE_2D, buttonTexture);
@@ -348,7 +373,7 @@ void Renderer::DrawFrame() {
             glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE,
                                glm::value_ptr(guiMvpMatrix));
             for (const VRGuiButton &button: vrGuiButtons) {
-                button.Render(programVRGuiParamPosition, programVRGuiParamUV);
+                button.render(programVRGuiParamPosition, programVRGuiParamUV);
             }
 
             glUseProgram(program2D);
@@ -362,7 +387,7 @@ void Renderer::DrawFrame() {
                 0, 0, screenWidth, screenHeight,
                 &cardboardEyeTextureDescriptions[0], &cardboardEyeTextureDescriptions[1]
         );
-        CHECK_GL_ERROR("Render cardboard");
+        CHECK_GL_ERROR("render cardboard");
 
         glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
         glViewport(0, 0, screenWidth, screenHeight);
@@ -589,6 +614,12 @@ void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
 void Renderer::ScanCardboardQr() {
     LOG_DEBUG("ScanCardboardQr");
     CardboardQrCode_scanQrCodeAndSaveDeviceParams();
+}
+
+void Renderer::ShowProgressBar() {
+    LOG_DEBUG("ShowProgressBar");
+    vrGuiProgressBarHideAt = time(0) + PROGRESS_BAR_SHOW_TIME;
+    vrGuiProgressBar.setVisible(true);
 }
 
 static TexturedMesh
