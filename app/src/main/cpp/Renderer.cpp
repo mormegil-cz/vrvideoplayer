@@ -331,7 +331,7 @@ void Renderer::DrawFrame(float videoPosition) {
     glClear(GL_COLOR_BUFFER_BIT);
     CHECK_GL_ERROR("Params");
 
-    time_t now = time_t(0);
+    time_t now = time(0);
     if (vrProgressBarShown) {
         if (now >= vrGuiProgressBarHideAt) {
             LOG_DEBUG("Hiding progress bar");
