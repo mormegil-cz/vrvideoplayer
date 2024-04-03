@@ -74,7 +74,7 @@ void VRGuiButton::render(GLint programParamPosition, GLint programParamUV) const
     glVertexAttribPointer(programParamUV, 2, GL_FLOAT, GL_FALSE, 0, vertexUV.data());
 
     glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_BYTE, quadFanIndices.data());
-    //CHECK_GL_ERROR("render button");
+    //CHECK_GL_ERROR("Render button");
 }
 
 ButtonAction VRGuiButton::evaluatePossibleHit(float viewTheta, float viewPhi) const {

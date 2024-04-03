@@ -355,14 +355,12 @@ void Renderer::DrawFrame(float videoPosition) {
                            glm::value_ptr(colorMapMatrix));
 
         eyeMeshes[eye].Render(programVideoParamPosition, programVideoParamUV);
+        CHECK_GL_ERROR("Render progress bar");
 
         if (vrProgressBarShown) {
             glUseProgram(program2D);
-            glm::mat4 guiMvpMatrix = glm::rotate(mvpMatrix, (float) M_PI - vrGuiCenterTheta,
-                                                 Y_AXIS);
-            glUniformMatrix4fv(programVRGuiParamMVPMatrix, 1, GL_FALSE,
-                               glm::value_ptr(guiMvpMatrix));
             vrGuiProgressBar.render(program2DParamPosition);
+            CHECK_GL_ERROR("Render progress bar");
         }
 
         if (vrGuiShown) {
@@ -378,6 +376,7 @@ void Renderer::DrawFrame(float videoPosition) {
 
             glUseProgram(program2D);
             RenderPointer();
+            CHECK_GL_ERROR("Render GUI");
         }
     }
 
@@ -387,7 +386,7 @@ void Renderer::DrawFrame(float videoPosition) {
                 0, 0, screenWidth, screenHeight,
                 &cardboardEyeTextureDescriptions[0], &cardboardEyeTextureDescriptions[1]
         );
-        CHECK_GL_ERROR("render cardboard");
+        CHECK_GL_ERROR("Render cardboard");
 
         glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
         glViewport(0, 0, screenWidth, screenHeight);
@@ -618,8 +617,8 @@ void Renderer::ScanCardboardQr() {
 
 void Renderer::ShowProgressBar() {
     LOG_DEBUG("ShowProgressBar");
+    vrProgressBarShown = true;
     vrGuiProgressBarHideAt = time(0) + PROGRESS_BAR_SHOW_TIME;
-    vrGuiProgressBar.setVisible(true);
 }
 
 static TexturedMesh
