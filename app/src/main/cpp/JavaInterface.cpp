@@ -27,7 +27,7 @@ constexpr typename std::underlying_type<E>::type to_underlying(E e) noexcept {
 }
 
 JavaInterface::JavaInterface(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
-                             jobject javaVideoTexturePlayerObj) :
+                             jobject javaVideoTexturePlayerObj, jobject javaControllerObj) :
         javaVm(vm) {
 
     JNIEnv *env;
@@ -36,12 +36,17 @@ JavaInterface::JavaInterface(JavaVM *vm, jobject javaContextObj, jobject javaAss
     javaContext = env->NewGlobalRef(javaContextObj);
     javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
     javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
-
+    javaController = env->NewGlobalRef(javaControllerObj);
 
     jclass videoTexturePlayerClass = env->FindClass("cz/mormegil/vrvideoplayer/VideoTexturePlayer");
     javaMethodVideoTexturePlayerInitializePlayback = env->GetMethodID(videoTexturePlayerClass,
                                                                       "initializePlayback",
                                                                       "(I)V");
+
+    jclass controllerClass = env->FindClass("cz/mormegil/vrvideoplayer/Controller");
+    javaMethodControllerExecuteButtonAction = env->GetMethodID(controllerClass,
+                                                               "executeButtonAction",
+                                                               "(I)V");
 
     jclass bitmapFactoryClass =
             env->FindClass("android/graphics/BitmapFactory");
@@ -73,6 +78,7 @@ JavaInterface::~JavaInterface() {
 
     env->DeleteGlobalRef(javaClassBitmapFactory);
 
+    env->DeleteGlobalRef(javaController);
     env->DeleteGlobalRef(javaVideoTexturePlayer);
     env->DeleteGlobalRef(javaAssetMgr);
     env->DeleteGlobalRef(javaContext);
@@ -131,7 +137,7 @@ bool JavaInterface::ExecuteButtonAction(JNIEnv *env, const ButtonAction action) 
     }
     jint actionIdJava = static_cast<jint>(actionId);
 
-    //env->CallVoidMethod(javaController, javaMethodControllerExecuteButtonAction, actionIdJava);
+    env->CallVoidMethod(javaController, javaMethodControllerExecuteButtonAction, actionIdJava);
 
     if (env->ExceptionOccurred() != nullptr) {
         LOG_ERROR("Java exception in button action");

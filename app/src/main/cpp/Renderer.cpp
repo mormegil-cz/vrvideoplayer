@@ -146,7 +146,7 @@ static VRGuiProgressBar vrGuiProgressBar(0, 3 * VR_GUI_BUTTON_GRID, 6 * VR_GUI_B
 static time_t vrGuiProgressBarHideAt;
 
 Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
-                   jobject javaVideoTexturePlayerObj)
+                   jobject javaVideoTexturePlayerObj, jobject javaControllerObj)
         : glInitialized(false),
           screenParamsChanged(false),
           deviceParamsChanged(false),
@@ -157,7 +157,7 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
           eyeMeshes{},
           viewMatrix{},
           cardboardHeadTracker{},
-          javaInterface(vm, javaContextObj, javaAssetMgrObj, javaVideoTexturePlayerObj) {
+          javaInterface(vm, javaContextObj, javaAssetMgrObj, javaVideoTexturePlayerObj, javaControllerObj) {
     LOG_DEBUG("Renderer instance created");
 
     Cardboard_initializeAndroid(vm, javaContextObj);

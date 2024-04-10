@@ -2,6 +2,7 @@ package cz.mormegil.vrvideoplayer
 
 import android.annotation.SuppressLint
 import android.graphics.PointF
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.opengl.GLSurfaceView
 import android.os.Bundle
@@ -32,13 +33,14 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
     private lateinit var binding: ActivityMainBinding
     private lateinit var glView: GLSurfaceView
     private lateinit var videoTexturePlayer: VideoTexturePlayer
+    private lateinit var controller: Controller
 
     private var nativeApp: Long = 0
     private var inputLayout: InputLayout = InputLayout.Mono
     private var inputMode: InputMode = InputMode.PlainFov
     private var outputMode: OutputMode = OutputMode.MonoLeft
 
-    private var lastTouchCoordinates = arrayOf(1.0f, 0.0f);
+    private var lastTouchCoordinates = arrayOf(1.0f, 0.0f)
 
     @SuppressLint("ClickableViewAccessibility") // VR video really does not support accessibility
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,15 +67,15 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
         glView.setOnTouchListener { _, event ->
             // save the X,Y coordinates
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                lastTouchCoordinates[0] = event.x;
-                lastTouchCoordinates[1] = event.y;
+                lastTouchCoordinates[0] = event.x
+                lastTouchCoordinates[1] = event.y
             }
 
             // let the touch event pass on to whoever needs it
             return@setOnTouchListener false
         }
         glView.setOnClickListener {
-            val x = lastTouchCoordinates[0];
+            val x = lastTouchCoordinates[0]
             val halfWidth = glView.width.coerceAtLeast(1) * 0.5f
             val relX = (x - halfWidth) / halfWidth
 
@@ -83,7 +85,9 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
 
         videoTexturePlayer = VideoTexturePlayer(this, videoUri, this)
 
-        nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer)
+        controller = Controller(getSystemService(AudioManager::class.java), videoTexturePlayer)
+
+        nativeApp = NativeLibrary.nativeInit(this, assets, videoTexturePlayer, controller)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, binding.root).let { controller ->
@@ -99,6 +103,8 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
 
         // Prevents screen from dimming/locking.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        volumeControlStream = AudioManager.STREAM_MUSIC
     }
 
     fun closePlayer(view: View) {
@@ -186,39 +192,39 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
 
     private fun setInputLayout(newLayout: InputLayout, menuItem: MenuItem) {
         if (newLayout != inputLayout) {
-            inputLayout = newLayout;
+            inputLayout = newLayout
             NativeLibrary.nativeSetOptions(
                 nativeApp,
                 inputLayout.ordinal,
                 inputMode.ordinal,
                 outputMode.ordinal
-            );
+            )
             menuItem.isChecked = true
         }
     }
 
     private fun setInputMode(newMode: InputMode, menuItem: MenuItem) {
         if (newMode != inputMode) {
-            inputMode = newMode;
+            inputMode = newMode
             NativeLibrary.nativeSetOptions(
                 nativeApp,
                 inputLayout.ordinal,
                 inputMode.ordinal,
                 outputMode.ordinal
-            );
+            )
             menuItem.isChecked = true
         }
     }
 
     private fun setOutputMode(newMode: OutputMode, menuItem: MenuItem) {
         if (newMode != outputMode) {
-            outputMode = newMode;
+            outputMode = newMode
             NativeLibrary.nativeSetOptions(
                 nativeApp,
                 inputLayout.ordinal,
                 inputMode.ordinal,
                 outputMode.ordinal
-            );
+            )
             menuItem.isChecked = true
         }
     }
@@ -253,7 +259,7 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
 
     override fun onVideoSizeChanged(mp: MediaPlayer?, width: Int, height: Int) {
         Log.d(TAG, "onVideoSizeChanged()")
-        NativeLibrary.nativeOnVideoSizeChanged(nativeApp, width, height);
+        NativeLibrary.nativeOnVideoSizeChanged(nativeApp, width, height)
     }
 
     private inner class Renderer : GLSurfaceView.Renderer {

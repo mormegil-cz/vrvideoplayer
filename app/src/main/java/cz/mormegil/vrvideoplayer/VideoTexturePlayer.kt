@@ -30,11 +30,11 @@ class VideoTexturePlayer(private val context: Context,
 
         val surfaceTexture = SurfaceTexture(texName)
         this.surfaceTexture = surfaceTexture
-        surfaceTexture.setOnFrameAvailableListener(this);
+        surfaceTexture.setOnFrameAvailableListener(this)
 
         val mediaPlayer = MediaPlayer()
         this.mediaPlayer = mediaPlayer
-        mediaPlayer.setOnVideoSizeChangedListener(videoSizeChangedListener);
+        mediaPlayer.setOnVideoSizeChangedListener(videoSizeChangedListener)
         mediaPlayer.setDataSource(context, videoSourceUri)
 
         val surface = Surface(surfaceTexture)
@@ -43,9 +43,9 @@ class VideoTexturePlayer(private val context: Context,
 
         mediaPlayer.prepare()
         /*
-    mediaPlayer.setOnBufferingUpdateListener(this);
-    mediaPlayer.setOnCompletionListener(this);
-    mediaPlayer.setOnPreparedListener(this);
+    mediaPlayer.setOnBufferingUpdateListener(this)
+    mediaPlayer.setOnCompletionListener(this)
+    mediaPlayer.setOnPreparedListener(this)
      */
         mediaPlayer.setAudioAttributes(
             AudioAttributes.Builder()
@@ -57,15 +57,20 @@ class VideoTexturePlayer(private val context: Context,
         Log.d(TAG, "VideoTexturePlayer initialized with $videoSourceUri")
     }
 
+    fun rewind() {
+        val mp = mediaPlayer ?: return
+        mp.seekTo(0)
+    }
+
     fun seek(relSeek: Int) {
         val mp = mediaPlayer ?: return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             mp.seekTo(
                 (mp.currentPosition + relSeek).toLong(),
                 if (relSeek >= 0) MediaPlayer.SEEK_NEXT_SYNC else MediaPlayer.SEEK_PREVIOUS_SYNC
-            );
+            )
         } else {
-            mp.seekTo(mp.currentPosition + relSeek);
+            mp.seekTo(mp.currentPosition + relSeek)
         }
     }
 
@@ -108,7 +113,7 @@ class VideoTexturePlayer(private val context: Context,
         if (mp != null) {
             val position = mp.currentPosition.toFloat()
             val duration = mp.duration.coerceAtLeast(1).toFloat()
-            videoPosition = position / duration;
+            videoPosition = position / duration
         }
 
         frameAvailable.set(true)

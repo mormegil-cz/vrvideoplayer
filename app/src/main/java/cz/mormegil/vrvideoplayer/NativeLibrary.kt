@@ -7,7 +7,8 @@ object NativeLibrary {
     external fun nativeInit(
         context: Context,
         assetManager: AssetManager,
-        videoTexturePlayer: VideoTexturePlayer
+        videoTexturePlayer: VideoTexturePlayer,
+        controller: Controller
     ): Long
 
     external fun nativeOnResume(nativeApp: Long)

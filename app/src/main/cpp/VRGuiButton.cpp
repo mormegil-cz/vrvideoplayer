@@ -10,7 +10,7 @@
 #define LOG_TAG "VRVideoPlayerB"
 
 constexpr float BUTTON_TEXTURE_SIZE = 1024.0f;
-constexpr int ACTIVATION_DELAY = 3;
+constexpr int ACTIVATION_DELAY = 2;
 
 constexpr std::array<GLubyte, 4> quadFanIndices = {0, 1, 2, 3};
 

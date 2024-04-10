@@ -11,7 +11,7 @@
 class JavaInterface {
 public:
     JavaInterface(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
-                  jobject javaVideoTexturePlayerObj);
+                  jobject javaVideoTexturePlayerObj, jobject javaControllerObj);
 
     ~JavaInterface();
 
@@ -27,11 +27,13 @@ private:
     jobject javaContext;
     jobject javaAssetMgr;
     jobject javaVideoTexturePlayer;
+    jobject javaController;
 
     jclass javaClassBitmapFactory;
     jclass javaClassGlUtils;
 
     jmethodID javaMethodVideoTexturePlayerInitializePlayback;
+    jmethodID javaMethodControllerExecuteButtonAction;
     jmethodID javaMethodBitmapFactoryDecodeStream;
     jmethodID javaMethodAssetManagerOpen;
     jmethodID javaMethodGlUtilsTexImage2D;

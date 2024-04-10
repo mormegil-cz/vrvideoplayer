@@ -55,7 +55,7 @@ inline bool isOutputModeMono(const OutputMode mode) {
 class Renderer {
 public:
     Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
-             jobject javaVideoTexturePlayerObj);
+             jobject javaVideoTexturePlayerObj, jobject javaControllerObj);
 
     ~Renderer();
 

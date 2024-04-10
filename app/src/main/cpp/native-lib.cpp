@@ -29,9 +29,10 @@ Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeInit(
         jobject /* this */,
         jobject contextObj,
         jobject assetMgr,
-        jobject videoTexturePlayer) {
+        jobject videoTexturePlayer,
+        jobject controller) {
     LOG_DEBUG("nativeOnStart");
-    return toJava(new Renderer(javaVm, contextObj, assetMgr, videoTexturePlayer));
+    return toJava(new Renderer(javaVm, contextObj, assetMgr, videoTexturePlayer, controller));
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -128,7 +129,7 @@ Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeShowProgressBar(
 
 extern "C" JNIEXPORT void JNICALL
 Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeDrawFrame(
-        JNIEnv * jenv,
+        JNIEnv *jenv,
         jobject /* this */,
         jlong native_app,
         jfloat video_position) {
