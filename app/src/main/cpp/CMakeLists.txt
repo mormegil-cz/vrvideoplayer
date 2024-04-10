@@ -37,6 +37,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         TexturedMesh.cpp
         VRGuiButton.cpp
         VRGuiProgressBar.cpp
+        JavaInterface.cpp
         GLUtils.cpp
         )
 

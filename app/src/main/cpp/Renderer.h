@@ -12,6 +12,8 @@
 
 #include "TexturedMesh.h"
 #include "GLUtils.h"
+#include "VRGuiButton.h"
+#include "JavaInterface.h"
 
 /**
  * Is the input video monoscopic or stereoscopic, and if stereoscopic, how are the views stored?
@@ -55,12 +57,12 @@ public:
     Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
              jobject javaVideoTexturePlayerObj);
 
-    virtual ~Renderer();
+    ~Renderer();
 
     void OnSurfaceCreated(JNIEnv *env);
 
-    void SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
-                    OutputMode outputMode);
+    void SetOptions(InputVideoLayout requestedInputLayout, InputVideoMode requestedInputMode,
+                    OutputMode requestedOutputMode);
 
     void ScanCardboardQr();
 
@@ -68,7 +70,7 @@ public:
 
     void SetScreenParams(int width, int height);
 
-    void DrawFrame(float videoPosition);
+    void DrawFrame(float videoPosition, JNIEnv *env);
 
     void OnPause();
 
@@ -77,10 +79,7 @@ public:
     void OnVideoSizeChanged(int width, int height);
 
 private:
-    JavaVM *javaVm;
-    jobject javaContext;
-    jobject javaAssetMgr;
-    jobject javaVideoTexturePlayer;
+    JavaInterface javaInterface;
 
     CardboardHeadTrackerPointer cardboardHeadTracker;
     CardboardLensDistortionPointer cardboardLensDistortion;
@@ -142,13 +141,20 @@ private:
 
     void ComputeMesh();
 
-    void UpdatePose();
+    void UpdatePose(JNIEnv *env);
 
     void RenderPointer();
 
     void RenderCardboardAlignLine();
 
+    void ExecuteButtonAction(const ButtonAction action, JNIEnv *env);
+
+    void InitVideoTexture(JNIEnv *env, GLuint &textureId);
+
+    void InitStaticTexture(JNIEnv *env, GLuint &textureId, const std::string &path);
+
     glm::mat4 BuildMVPMatrix(int eye);
+
     glm::mat4 BuildColorMapMatrix(int eye);
 };
 

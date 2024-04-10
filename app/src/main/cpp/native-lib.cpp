@@ -128,10 +128,10 @@ Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeShowProgressBar(
 
 extern "C" JNIEXPORT void JNICALL
 Java_cz_mormegil_vrvideoplayer_NativeLibrary_nativeDrawFrame(
-        JNIEnv * /* jenv */,
+        JNIEnv * jenv,
         jobject /* this */,
         jlong native_app,
         jfloat video_position) {
     // LOG_DEBUG("nativeDrawFrame");
-    fromJava(native_app)->DrawFrame(video_position);
+    fromJava(native_app)->DrawFrame(video_position, jenv);
 }

@@ -131,7 +131,8 @@ static std::array<VRGuiButton, 10> vrGuiButtons{
                     VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 512, ButtonAction::PAUSE, true)
 };
 
-static VRGuiProgressBar vrGuiProgressBar(0, 3 * VR_GUI_BUTTON_GRID, 6 * VR_GUI_BUTTON_GRID, 0.5f * VR_GUI_BUTTON_GRID);
+static VRGuiProgressBar vrGuiProgressBar(0, 3 * VR_GUI_BUTTON_GRID, 6 * VR_GUI_BUTTON_GRID,
+                                         0.5f * VR_GUI_BUTTON_GRID);
 static time_t vrGuiProgressBarHideAt;
 
 Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
@@ -146,14 +147,8 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
           eyeMeshes{},
           viewMatrix{},
           cardboardHeadTracker{},
-          javaVm(vm) {
+          javaInterface(vm, javaContextObj, javaAssetMgrObj, javaVideoTexturePlayerObj) {
     LOG_DEBUG("Renderer instance created");
-
-    JNIEnv *env;
-    vm->GetEnv((void **) &env, JNI_VERSION_1_6);
-    javaContext = env->NewGlobalRef(javaContextObj);
-    javaAssetMgr = env->NewGlobalRef(javaAssetMgrObj);
-    javaVideoTexturePlayer = env->NewGlobalRef(javaVideoTexturePlayerObj);
 
     Cardboard_initializeAndroid(vm, javaContextObj);
     cardboardHeadTracker = CardboardHeadTrackerPointer(CardboardHeadTracker_create());
@@ -163,15 +158,6 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
 
 Renderer::~Renderer() {
     LOG_DEBUG("Renderer instance destroyed");
-
-    if (javaVm != nullptr) {
-        JNIEnv *env;
-        javaVm->GetEnv((void **) &env, JNI_VERSION_1_6);
-
-        env->DeleteGlobalRef(javaVideoTexturePlayer);
-        env->DeleteGlobalRef(javaAssetMgr);
-        env->DeleteGlobalRef(javaContext);
-    }
 }
 
 void Renderer::OnPause() {
@@ -219,7 +205,7 @@ initStaticTexture(JNIEnv *env, jobject java_asset_mgr, GLuint &textureId, const 
     CHECK_GL_ERROR("Texture load");
 }
 
-static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint &textureId) {
+void Renderer::InitVideoTexture(JNIEnv *env, GLuint &textureId) {
     glGenTextures(1, &textureId);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
@@ -228,11 +214,30 @@ static void initVideoTexture(JNIEnv *env, jobject javaVideoTexturePlayer, GLuint
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (!InitVideoTexturePlayback(env, javaVideoTexturePlayer, textureId)) {
+
+    if (!javaInterface.InitializePlayback(env, textureId)) {
         LOG_ERROR("Couldn't initialize video texture");
         return;
     }
     CHECK_GL_ERROR("Video texture init");
+}
+
+void Renderer::InitStaticTexture(JNIEnv *env, GLuint &textureId, const std::string &path) {
+    glGenTextures(1, &textureId);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (!javaInterface.LoadPngFromAssetManager(env, GL_TEXTURE_2D, path)) {
+        LOG_ERROR("Couldn't load texture");
+        return;
+    }
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    CHECK_GL_ERROR("Texture load");
 }
 
 void Renderer::OnSurfaceCreated(JNIEnv *env) {
@@ -254,7 +259,7 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     programVideoParamColorMapMatrix = glGetUniformLocation(programVideo, "u_ColorMap");
     CHECK_GL_ERROR("Video program params");
 
-    initVideoTexture(env, javaVideoTexturePlayer, videoTexture);
+    InitVideoTexture(env, videoTexture);
 
     const GLuint vertexShaderVRGui = LoadGLShader(GL_VERTEX_SHADER, kVertexShader);
     const GLuint fragmentShaderVRGui = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShaderVRGui);
@@ -271,7 +276,7 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     programVRGuiParamMVPMatrix = glGetUniformLocation(programVRGui, "u_MVP");
     CHECK_GL_ERROR("VR Gui program params");
 
-    initStaticTexture(env, javaAssetMgr, buttonTexture, "buttons-texture.png");
+    InitStaticTexture(env, buttonTexture, "buttons-texture.png");
 
     const GLuint vertexShader2D = LoadGLShader(GL_VERTEX_SHADER, kVertexShader2D);
     const GLuint fragmentShader2D = LoadGLShader(GL_FRAGMENT_SHADER, kFragmentShader2D);
@@ -287,12 +292,12 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
     CHECK_GL_ERROR("2D program params");
 }
 
-void Renderer::DrawFrame(float videoPosition) {
+void Renderer::DrawFrame(float videoPosition, JNIEnv *env) {
     if (!UpdateDeviceParams()) {
         return;
     }
 
-    UpdatePose();
+    UpdatePose(env);
 
     int minEye, maxEye;
     GLsizei eyeWidth;
@@ -600,14 +605,15 @@ glm::mat4 Renderer::BuildColorMapMatrix(int eye) {
     }
 }
 
-void Renderer::SetOptions(InputVideoLayout layout, InputVideoMode inputMode,
-                          OutputMode outputMode) {
-    LOG_DEBUG("SetOptions(%d, %d, %d)", layout, inputMode, outputMode);
-    deviceParamsChanged |= outputMode != this->outputMode;
+void Renderer::SetOptions(InputVideoLayout requestedInputLayout, InputVideoMode requestedInputMode,
+                          OutputMode requestedOutputMode) {
+    LOG_DEBUG("SetOptions(%d, %d, %d)", requestedInputLayout, requestedInputMode,
+              requestedOutputMode);
+    deviceParamsChanged |= requestedOutputMode != this->outputMode;
 
-    this->inputVideoLayout = layout;
-    this->inputVideoMode = inputMode;
-    this->outputMode = outputMode;
+    this->inputVideoLayout = requestedInputLayout;
+    this->inputVideoMode = requestedInputMode;
+    this->outputMode = requestedOutputMode;
     ComputeMesh();
 }
 
@@ -832,7 +838,7 @@ void Renderer::ComputeMesh() {
     }
 }
 
-void Renderer::UpdatePose() {
+void Renderer::UpdatePose(JNIEnv *env) {
     glm::quat headOrientationQuat;
     glm::vec3 headPosition;
     CardboardHeadTracker_getPose(
@@ -872,9 +878,10 @@ void Renderer::UpdatePose() {
 
     if (vrGuiShown) {
         for (const VRGuiButton &button: vrGuiButtons) {
-            ButtonAction hitAction = button.evaluatePossibleHit(yaw - vrGuiCenterTheta, pitch);
+            ButtonAction hitAction = button.evaluatePossibleHit(M_PI + yaw - vrGuiCenterTheta,
+                                                                pitch);
             if (hitAction != ButtonAction::NONE) {
-                // executeButtonAction(hitAction);
+                this->ExecuteButtonAction(hitAction, env);
             }
         }
     }
@@ -886,3 +893,22 @@ void Renderer::OnVideoSizeChanged(int width, int height) {
     videoAspect = (float) videoWidth / (float) videoHeight;
     screenParamsChanged = true;
 }
+
+void Renderer::ExecuteButtonAction(const ButtonAction action, JNIEnv *env) {
+    switch (action) {
+        case ButtonAction::NONE:
+            // wat
+            break;
+
+        case ButtonAction::RECENTER_YAW:
+            break;
+
+        case ButtonAction::RECENTER_2D:
+            break;
+
+        default:
+            javaInterface.ExecuteButtonAction(env, action);
+            break;
+    }
+}
+

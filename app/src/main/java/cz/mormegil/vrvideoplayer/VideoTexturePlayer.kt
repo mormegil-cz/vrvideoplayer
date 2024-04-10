@@ -12,7 +12,6 @@ import android.util.Log
 import android.view.Surface
 import java.util.concurrent.atomic.AtomicBoolean
 
-
 class VideoTexturePlayer(private val context: Context,
                          private val videoSourceUri: Uri,
     private val videoSizeChangedListener: OnVideoSizeChangedListener) :
