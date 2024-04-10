@@ -12,6 +12,10 @@ public:
         env->DeleteLocalRef(obj);
     }
 
+    inline jobject get() {
+        return obj;
+    }
+
 private:
     JNIEnv *env;
     jobject obj;
@@ -95,11 +99,10 @@ bool JavaInterface::InitializePlayback(JNIEnv *env, GLuint textureName) {
 }
 
 bool JavaInterface::LoadPngFromAssetManager(JNIEnv *env, int target, const std::string &path) {
-    jstring javaPath = env->NewStringUTF(path.c_str());
-    JavaLocalRef(env, javaPath);
+    JavaLocalRef javaPathHolder(env, env->NewStringUTF(path.c_str()));
 
     jobject imageStream =
-            env->CallObjectMethod(javaAssetMgr, javaMethodAssetManagerOpen, javaPath);
+            env->CallObjectMethod(javaAssetMgr, javaMethodAssetManagerOpen, javaPathHolder.get());
     jobject imageObj = env->CallStaticObjectMethod(
             javaClassBitmapFactory, javaMethodBitmapFactoryDecodeStream, imageStream);
     if (env->ExceptionOccurred() != nullptr) {

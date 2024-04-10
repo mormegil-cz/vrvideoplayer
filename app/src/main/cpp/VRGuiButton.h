@@ -20,26 +20,39 @@ enum class ButtonAction {
     PAUSE
 };
 
+enum class ButtonBehavior {
+    DELAYED_TRIGGER,
+    AUTO_REPEAT,
+};
+
 class VRGuiButton {
 public:
     VRGuiButton(float centerTheta, float centerPhi, float centerDistance, float sizeAlpha, int textureXPos,
-                int textureYPos, ButtonAction action, bool visible);
+                int textureYPos, ButtonAction action, ButtonBehavior behavior, bool visible);
 
     void render(GLint programParamPosition, GLint programParamUV) const;
 
-    ButtonAction evaluatePossibleHit(float viewTheta, float viewPhi) const;
+    ButtonAction evaluatePossibleHit(float viewTheta, float viewPhi);
 
-    void setVisible(bool visible);
+    void setVisible(bool newVisible);
 
 private:
     float centerTheta;
     float centerPhi;
     float sizeAlpha;
     ButtonAction action;
+    ButtonBehavior behavior;
     bool visible;
+
+    bool waitingForActivation;
+    time_t activationTime;
 
     std::array<GLfloat, 12> vertexPos;
     std::array<GLfloat, 8> vertexUV;
+
+    ButtonAction evaluateHit();
+    ButtonAction doEnterButton(time_t now);
+    ButtonAction doTriggerButton(time_t now);
 };
 
 #endif //VR_VIDEO_PLAYER_VRGUIBUTTON_H

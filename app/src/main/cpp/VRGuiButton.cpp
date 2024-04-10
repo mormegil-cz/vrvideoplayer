@@ -10,6 +10,7 @@
 #define LOG_TAG "VRVideoPlayerB"
 
 constexpr float BUTTON_TEXTURE_SIZE = 1024.0f;
+constexpr int ACTIVATION_DELAY = 3;
 
 constexpr std::array<GLubyte, 4> quadFanIndices = {0, 1, 2, 3};
 
@@ -55,13 +56,15 @@ static std::array<GLfloat, 8> computeTexturePos(int textureXPos, int textureYPos
 }
 
 VRGuiButton::VRGuiButton(float centerTheta, float centerPhi, float centerDistance, float sizeAlpha,
-                         int textureXPos, int textureYPos, ButtonAction action, bool visible)
+                         int textureXPos, int textureYPos, ButtonAction action,
+                         ButtonBehavior behavior, bool visible)
         : centerTheta(centerTheta),
           centerPhi(centerPhi),
           sizeAlpha(sizeAlpha),
           vertexPos(computeVertexPos(centerTheta, centerPhi, centerDistance, sizeAlpha)),
           vertexUV(computeTexturePos(textureXPos, textureYPos)),
           action(action),
+          behavior(behavior),
           visible(visible) {
 }
 
@@ -77,18 +80,61 @@ void VRGuiButton::render(GLint programParamPosition, GLint programParamUV) const
     //CHECK_GL_ERROR("Render button");
 }
 
-ButtonAction VRGuiButton::evaluatePossibleHit(float viewTheta, float viewPhi) const {
+ButtonAction VRGuiButton::evaluatePossibleHit(float viewTheta, float viewPhi) {
     if (!visible) return ButtonAction::NONE;
 
     if ((fabsf(viewTheta - centerTheta) * 2.0f < sizeAlpha) &&
         (fabsf((viewPhi - centerPhi) * 2.0f) < sizeAlpha)) {
-        // TODO: waiting time, etc.
-        LOG_DEBUG("Hit button %d", action);
+        return evaluateHit();
     }
 
+    if (waitingForActivation) {
+        LOG_DEBUG("Left button %d", action);
+        waitingForActivation = false;
+    }
     return ButtonAction::NONE;
 }
 
-void VRGuiButton::setVisible(bool visible) {
-    this->visible = visible;
+ButtonAction VRGuiButton::evaluateHit() {
+    time_t now = time(nullptr);
+    if (waitingForActivation) {
+        if (now >= activationTime) {
+            LOG_DEBUG("Button %d triggered", action);
+            return doTriggerButton(now);
+        }
+        // still waiting
+        return ButtonAction::NONE;
+    } else {
+        LOG_DEBUG("Entered button %d", action);
+        return doEnterButton(now);
+    }
+}
+
+void VRGuiButton::setVisible(bool newVisible) {
+    this->visible = newVisible;
+}
+
+ButtonAction VRGuiButton::doEnterButton(time_t now) {
+    switch (behavior) {
+        case ButtonBehavior::AUTO_REPEAT:
+            return doTriggerButton(now);
+
+        case ButtonBehavior::DELAYED_TRIGGER:
+            waitingForActivation = true;
+            activationTime = now + ACTIVATION_DELAY;
+            return ButtonAction::NONE;
+    }
+}
+
+ButtonAction VRGuiButton::doTriggerButton(time_t now) {
+    switch (behavior) {
+        case ButtonBehavior::AUTO_REPEAT:
+            waitingForActivation = true;
+            activationTime = now + ACTIVATION_DELAY;
+            return action;
+
+        case ButtonBehavior::DELAYED_TRIGGER:
+            waitingForActivation = false;
+            return action;
+    }
 }

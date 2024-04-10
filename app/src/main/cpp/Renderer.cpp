@@ -110,25 +110,35 @@ static constexpr GLubyte trivial2DData[] = {0, 1};
 
 static std::array<VRGuiButton, 10> vrGuiButtons{
         VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::RECENTER_2D, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 0, ButtonAction::RECENTER_2D,
+                    ButtonBehavior::DELAYED_TRIGGER, true),
         VRGuiButton(M_PI - 0 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 0, ButtonAction::RECENTER_YAW, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 0, ButtonAction::RECENTER_YAW,
+                    ButtonBehavior::DELAYED_TRIGGER, true),
         VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 512, 0, ButtonAction::VOLUME_DOWN, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 512, 0, ButtonAction::VOLUME_DOWN,
+                    ButtonBehavior::AUTO_REPEAT, true),
         VRGuiButton(M_PI - 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 768, 0, ButtonAction::VOLUME_UP, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 768, 0, ButtonAction::VOLUME_UP,
+                    ButtonBehavior::AUTO_REPEAT, true),
         VRGuiButton(M_PI - 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 256, ButtonAction::OPEN_FILE, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 256, ButtonAction::OPEN_FILE,
+                    ButtonBehavior::DELAYED_TRIGGER, true),
         VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 256, ButtonAction::PLAY, false),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 256, ButtonAction::PLAY,
+                    ButtonBehavior::DELAYED_TRIGGER, false),
         VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 512, 256, ButtonAction::BACK, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 512, 256, ButtonAction::BACK,
+                    ButtonBehavior::DELAYED_TRIGGER, true),
         VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 1 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 768, 256, ButtonAction::FORWARD, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 768, 256, ButtonAction::FORWARD,
+                    ButtonBehavior::AUTO_REPEAT, true),
         VRGuiButton(M_PI + 2 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 512, ButtonAction::REWIND, true),
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 0, 512, ButtonAction::REWIND,
+                    ButtonBehavior::AUTO_REPEAT, true),
         VRGuiButton(M_PI + 1 * VR_GUI_BUTTON_GRID, VR_GUI_BUTTON_PHI_0 - 0 * VR_GUI_BUTTON_GRID,
-                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 512, ButtonAction::PAUSE, true)
+                    VR_GUI_DISTANCE, VR_GUI_BUTTON_SIZE, 256, 512, ButtonAction::PAUSE,
+                    ButtonBehavior::DELAYED_TRIGGER, true)
 };
 
 static VRGuiProgressBar vrGuiProgressBar(0, 3 * VR_GUI_BUTTON_GRID, 6 * VR_GUI_BUTTON_GRID,
@@ -336,7 +346,7 @@ void Renderer::DrawFrame(float videoPosition, JNIEnv *env) {
     glClear(GL_COLOR_BUFFER_BIT);
     CHECK_GL_ERROR("Params");
 
-    time_t now = time(0);
+    time_t now = time(nullptr);
     if (vrProgressBarShown) {
         if (now >= vrGuiProgressBarHideAt) {
             LOG_DEBUG("Hiding progress bar");
@@ -625,7 +635,7 @@ void Renderer::ScanCardboardQr() {
 void Renderer::ShowProgressBar() {
     LOG_DEBUG("ShowProgressBar");
     vrProgressBarShown = true;
-    vrGuiProgressBarHideAt = time(0) + PROGRESS_BAR_SHOW_TIME;
+    vrGuiProgressBarHideAt = time(nullptr) + PROGRESS_BAR_SHOW_TIME;
 }
 
 static TexturedMesh
@@ -877,7 +887,7 @@ void Renderer::UpdatePose(JNIEnv *env) {
     }
 
     if (vrGuiShown) {
-        for (const VRGuiButton &button: vrGuiButtons) {
+        for (VRGuiButton &button: vrGuiButtons) {
             ButtonAction hitAction = button.evaluatePossibleHit(M_PI + yaw - vrGuiCenterTheta,
                                                                 pitch);
             if (hitAction != ButtonAction::NONE) {
@@ -901,6 +911,8 @@ void Renderer::ExecuteButtonAction(const ButtonAction action, JNIEnv *env) {
             break;
 
         case ButtonAction::RECENTER_YAW:
+            // TODO: Delay recenter?
+            CardboardHeadTracker_recenter(cardboardHeadTracker.get());
             break;
 
         case ButtonAction::RECENTER_2D:
