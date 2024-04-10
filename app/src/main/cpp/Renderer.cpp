@@ -575,6 +575,7 @@ glm::mat4 Renderer::BuildColorMapMatrix(int eye) {
         return glm::mat4(1.0f);
     }
 
+    assert(eye >= 0 && eye <= 1);
     switch (eye) {
         case 0:
             // red
@@ -595,7 +596,7 @@ glm::mat4 Renderer::BuildColorMapMatrix(int eye) {
             };
 
         default:
-            assert(false);
+            std::abort();
     }
 }
 
