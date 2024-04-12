@@ -16,6 +16,7 @@
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
+#define GLM_ENABLE_EXPERIMENTAL // quaternion.hpp is an experimental extension in GLM
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/matrix_operation.hpp"
 #include "glm/ext/matrix_transform.hpp"

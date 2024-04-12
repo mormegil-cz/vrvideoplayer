@@ -39,4 +39,6 @@ In the VR view, you you can activate (or deactivate) VR controls by looking up; 
 Attribution
 -----------
 
-Includes Cardboard SDK library from Google, LLC, licensed under the Apache License, Version 2.0 (see `app/libs/cardboard-sdk/`).
+Includes the following libraries:
+- Cardboard SDK library from Google, LLC, licensed under the Apache License, Version 2.0 (see `app/libs/cardboard-sdk/`). See https://developers.google.com/cardboard
+- OpenGL Mathematics (GLM) from G-Truc Creation, licensed under The Happy Bunny License or MIT License (see `app/srv/main/cpp/glm/`). See https://glm.g-truc.net/
