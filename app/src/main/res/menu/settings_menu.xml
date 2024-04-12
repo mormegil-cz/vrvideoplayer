@@ -3,10 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <group android:checkableBehavior="single">
+    <group android:id="@+id/output_mode_group" android:checkableBehavior="single">
         <item
             android:id="@+id/output_mode_mono_left_eye"
-            android:checked="true"
+            android:checked="false"
             android:title="@string/output_mode_mono_left_eye" />
         <item
             android:id="@+id/output_mode_mono_right_eye"
@@ -17,10 +17,10 @@
     </group>
     <item android:id="@+id/switch_viewer"
         android:title="@string/switch_viewer" />
-    <group android:checkableBehavior="single">
+    <group android:id="@+id/input_layout_group" android:checkableBehavior="single">
         <item
             android:id="@+id/input_layout_mono"
-            android:checked="true"
+            android:checked="false"
             android:title="@string/input_layout_mono" />
         <item
             android:id="@+id/input_layout_stereo_horiz"
@@ -32,10 +32,10 @@
             android:id="@+id/input_layout_anaglyph_red_cyan"
             android:title="@string/input_layout_anaglyph_red_cyan" />
     </group>
-    <group android:checkableBehavior="single">
+    <group android:id="@+id/input_mode_group" android:checkableBehavior="single">
         <item
             android:id="@+id/input_mode_plain_fov"
-            android:checked="true"
+            android:checked="false"
             android:title="@string/input_mode_plain_fov" />
         <item
             android:id="@+id/input_mode_equirect_180"

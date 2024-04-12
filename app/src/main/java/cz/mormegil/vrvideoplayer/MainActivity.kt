@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.PointF
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.net.Uri
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +16,7 @@ import android.view.WindowManager
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.view.MenuCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -23,7 +25,6 @@ import java.lang.IllegalArgumentException
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.roundToInt
-
 
 class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener {
     companion object {
@@ -42,7 +43,7 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
 
     private var lastTouchCoordinates = arrayOf(1.0f, 0.0f)
 
-    @SuppressLint("ClickableViewAccessibility") // VR video really does not support accessibility
+    @SuppressLint("ClickableViewAccessibility") // VR video really does not support accessibility (and the functionality is also accessible in an alternate way, anyway)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -115,6 +116,12 @@ class MainActivity : AppCompatActivity(), MediaPlayer.OnVideoSizeChangedListener
         val popup = PopupMenu(this, view)
         val inflater: MenuInflater = popup.menuInflater
         inflater.inflate(R.menu.settings_menu, popup.menu)
+        MenuCompat.setGroupDividerEnabled(popup.menu, true)
+
+        popup.menu.findItem(inputMode.menuItemId()).setChecked(true)
+        popup.menu.findItem(inputLayout.menuItemId()).setChecked(true)
+        popup.menu.findItem(outputMode.menuItemId()).setChecked(true)
+
         popup.setOnMenuItemClickListener { item: MenuItem ->
             when (item.itemId) {
                 R.id.switch_viewer -> {
