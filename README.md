@@ -15,7 +15,7 @@ By clicking on the cog wheel icon in the corner, you can switch between supporte
 Output mode
 - _Monoscopic (L)_ – display only the left-eye view normally on the phone screen
 - _Monoscopic (R)_ – display only the _right_-eye view normally on the phone screen
-- _Cardboard_ – if your are using a Google Cardboard device to view the VR video (you can click on _Switch Cardboard viewer_ to configure the used device)
+- _Cardboard_ – if you are using a Google Cardboard device to view the VR video (you can click on _Switch Cardboard viewer_ to configure the used device)
 
 3D video format
 - _Monoscopic_ – for 2D video
@@ -27,14 +27,14 @@ VR video geometry
 - Flat FOV – for normal (non-VR) video
 - 180° equirectangular – equirectangular VR video with 180° field of view
 - 360° equirectangular – equirectangular VR video with full 360° field of view
-- 180° panorama – Flat panoramatic video with 180° field of view
-- 360° panorama – Flat panoramatic video with full 360° field of view
+- 180° panorama – flat panoramatic video with 180° field of view
+- 360° panorama – flat panoramatic video with full 360° field of view
 
 By clicking the cross icon in the opposite corner, you can close the application.
 
 By tapping the display, you can seek forward (on the right-hand side of the screen) or backward (on the left-hand side of the screen).
 
-In the VR view, you you can activate (or deactivate) VR controls by looking up; these allow you to control the playback, raise or lower the volume, re-center the VR view, etc.
+In the VR view, you can activate (or deactivate) VR controls by looking up; these allow you to control the playback, raise or lower the volume, re-center the VR view, etc.
 
 Attribution
 -----------
