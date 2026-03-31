@@ -1,8 +1,5 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -33,10 +30,6 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -46,12 +39,12 @@ android {
     buildFeatures {
         viewBinding = true
     }
-    ndkVersion = "25.1.8937393"
+    ndkVersion = "30.0.14904198"
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_1_8
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
