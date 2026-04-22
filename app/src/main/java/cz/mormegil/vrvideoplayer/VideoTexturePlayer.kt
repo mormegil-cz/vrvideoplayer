@@ -64,6 +64,9 @@ class VideoTexturePlayer(private val context: Context,
 
     fun seek(relSeek: Int) {
         val mp = mediaPlayer ?: return
+        if (!mp.isPlaying && relSeek < 0) {
+            mp.start()
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             mp.seekTo(
                 (mp.currentPosition + relSeek).toLong(),
