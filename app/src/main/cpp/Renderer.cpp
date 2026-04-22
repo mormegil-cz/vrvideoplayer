@@ -398,7 +398,7 @@ void Renderer::DrawFrame(float videoPosition, JNIEnv *env) {
 
     if (outputMode == OutputMode::CARDBOARD_STEREO) {
         CardboardDistortionRenderer_renderEyeToDisplay(
-                cardboardDistortionRenderer.get(), 0,
+                cardboardDistortionRenderer.get(), GL_NONE,
                 0, 0, screenWidth, screenHeight,
                 &cardboardEyeTextureDescriptions[0], &cardboardEyeTextureDescriptions[1]
         );
@@ -534,6 +534,13 @@ void Renderer::GlSetup() {
     };
 
     CHECK_GL_ERROR("GlSetup");
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        LOG_ERROR("Framebuffer not complete!");
+        // Crash immediately to make OpenGL errors obvious.
+        abort();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
 }
 
 void Renderer::GlTeardown() {
