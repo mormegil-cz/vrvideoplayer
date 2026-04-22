@@ -87,12 +87,13 @@ private:
 
     bool screenParamsChanged;
     bool deviceParamsChanged;
-    int screenWidth;
-    int screenHeight;
-    float screenAspect;
-    int videoWidth;
-    int videoHeight;
-    float videoAspect;
+    bool needsNewMesh{};
+    int screenWidth{};
+    int screenHeight{};
+    float screenAspect{};
+    int videoWidth{};
+    int videoHeight{};
+    float videoAspect{};
 
     bool glInitialized;
     InputVideoLayout inputVideoLayout;
@@ -100,33 +101,33 @@ private:
     OutputMode outputMode;
 
     unsigned long frameCount;
-    GLuint programVideo;
-    GLint programVideoParamPosition;
-    GLint programVideoParamUV;
-    GLint programVideoParamMVPMatrix;
-    GLint programVideoParamColorMapMatrix;
-    GLuint programVRGui;
-    GLint programVRGuiParamPosition;
-    GLint programVRGuiParamUV;
-    GLint programVRGuiParamMVPMatrix;
-    GLuint program2D;
-    GLint program2DParamPosition;
+    GLuint programVideo{};
+    GLint programVideoParamPosition{};
+    GLint programVideoParamUV{};
+    GLint programVideoParamMVPMatrix{};
+    GLint programVideoParamColorMapMatrix{};
+    GLuint programVRGui{};
+    GLint programVRGuiParamPosition{};
+    GLint programVRGuiParamUV{};
+    GLint programVRGuiParamMVPMatrix{};
+    GLuint program2D{};
+    GLint program2DParamPosition{};
 
-    GLuint videoTexture;
-    GLuint renderTexture;
-    GLuint buttonTexture;
+    GLuint videoTexture{};
+    GLuint renderTexture{};
+    GLuint buttonTexture{};
 
-    GLuint framebuffer;
+    GLuint framebuffer{};
 
-    std::array<glm::mat4, 2> cardboardEyeMatrices;
-    std::array<glm::mat4, 2> cardboardProjectionMatrices;
-    std::array<CardboardEyeTextureDescription, 2> cardboardEyeTextureDescriptions;
+    std::array<glm::mat4, 2> cardboardEyeMatrices{};
+    std::array<glm::mat4, 2> cardboardProjectionMatrices{};
+    std::array<CardboardEyeTextureDescription, 2> cardboardEyeTextureDescriptions{};
 
     std::array<TexturedMesh, 2> eyeMeshes;
 
     glm::mat4 viewMatrix;
-    float yaw;
-    float pitch;
+    float yaw{};
+    float pitch{};
 
     bool vrGuiShown = false;
     bool vrProgressBarShown = false;
@@ -147,7 +148,7 @@ private:
 
     void RenderCardboardAlignLine();
 
-    void ExecuteButtonAction(const ButtonAction action, JNIEnv *env);
+    void ExecuteButtonAction(ButtonAction action, JNIEnv *env);
 
     void InitVideoTexture(JNIEnv *env, GLuint &textureId);
 

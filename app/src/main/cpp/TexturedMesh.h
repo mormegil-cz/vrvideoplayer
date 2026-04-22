@@ -11,11 +11,13 @@ public:
     TexturedMesh();
 
     TexturedMesh(GLenum mode,
-                 GLsizei vertexCount,
-                 std::unique_ptr<GLfloat[]> vertexPos,
-                 std::unique_ptr<GLfloat[]> vertexUV,
+                 size_t vertexDataCount,
+                 GLsizei indexCount,
+                 std::unique_ptr<GLfloat[]> vertexData,
                  std::unique_ptr<GLushort[]> vertexIndex);
 
+    void UploadBufferObjects();
+    void DestroyBufferObjects();
     void Render(GLint programParamPosition, GLint programParamUV) const;
 
     class Builder {
@@ -27,17 +29,19 @@ public:
         TexturedMesh build();
 
     private:
-        std::vector<GLfloat> vertexPos;
-        std::vector<GLfloat> vertexUV;
-        std::vector<GLushort> vertexIndex;
+        std::vector<GLfloat> vertexData;
+        std::vector<GLushort> indices;
     };
 
 private:
     GLenum mode;
-    GLsizei vertexCount;
-    std::unique_ptr<GLfloat[]> vertexPos;
-    std::unique_ptr<GLfloat[]> vertexUV;
-    std::unique_ptr<GLushort[]> vertexIndex;
+    size_t vertexDataCount;
+    GLsizei indexCount;
+    GLuint vbo;
+    GLuint ebo;
+    GLuint vao;
+    std::unique_ptr<GLfloat[]> vertexData;
+    std::unique_ptr<GLushort[]> indices;
 };
 
 #endif //VR_VIDEO_PLAYER_TEXTUREDMESH_H

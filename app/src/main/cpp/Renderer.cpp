@@ -1,3 +1,5 @@
+#define GL_GLEXT_PROTOTYPES
+
 #include "Renderer.h"
 
 #include <cmath>
@@ -16,7 +18,9 @@
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
+
 #define GLM_ENABLE_EXPERIMENTAL // quaternion.hpp is an experimental extension in GLM
+
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/matrix_operation.hpp"
 #include "glm/ext/matrix_transform.hpp"
@@ -37,8 +41,8 @@ constexpr float kzFar = 2.0f;
 
 constexpr const char *kVertexShader = R"glsl(#version 300 es
 uniform mat4 u_MVP;
-in vec4 a_Position;
-in vec2 a_UV;
+layout (location = 0) in vec4 a_Position;
+layout (location = 1) in vec2 a_UV;
 out vec2 v_UV;
 
 void main() {
@@ -158,7 +162,8 @@ Renderer::Renderer(JavaVM *vm, jobject javaContextObj, jobject javaAssetMgrObj,
           eyeMeshes{},
           viewMatrix{},
           cardboardHeadTracker{},
-          javaInterface(vm, javaContextObj, javaAssetMgrObj, javaVideoTexturePlayerObj, javaControllerObj) {
+          javaInterface(vm, javaContextObj, javaAssetMgrObj, javaVideoTexturePlayerObj,
+                        javaControllerObj) {
     LOG_DEBUG("Renderer instance created");
 
     Cardboard_initializeAndroid(vm, javaContextObj);
@@ -306,6 +311,10 @@ void Renderer::OnSurfaceCreated(JNIEnv *env) {
 void Renderer::DrawFrame(float videoPosition, JNIEnv *env) {
     if (!UpdateDeviceParams()) {
         return;
+    }
+    if (needsNewMesh) {
+        ComputeMesh();
+        needsNewMesh = false;
     }
 
     UpdatePose(env);
@@ -501,6 +510,9 @@ void Renderer::GlSetup() {
     }
     glInitialized = true;
 
+    const GLubyte *extensions = glGetString(GL_EXTENSIONS);
+    LOG_DEBUG("Supported OpenGL extensions: %s", extensions);
+
     // Create render texture.
     glGenTextures(1, &renderTexture);
     glBindTexture(GL_TEXTURE_2D, renderTexture);
@@ -541,6 +553,8 @@ void Renderer::GlSetup() {
         abort();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
+
+    needsNewMesh = true;
 }
 
 void Renderer::GlTeardown() {
@@ -548,6 +562,12 @@ void Renderer::GlTeardown() {
         return;
     }
     glInitialized = false;
+
+    LOG_DEBUG("Tearing down buffer objects...");
+    for (int eye = 0; eye < 2; ++eye) {
+        eyeMeshes[eye].DestroyBufferObjects();
+    }
+    LOG_DEBUG("Tore down buffer objects...");
 
     glDeleteFramebuffers(1, &framebuffer);
     framebuffer = 0;
@@ -632,7 +652,7 @@ void Renderer::SetOptions(InputVideoLayout requestedInputLayout, InputVideoMode 
     this->inputVideoLayout = requestedInputLayout;
     this->inputVideoMode = requestedInputMode;
     this->outputMode = requestedOutputMode;
-    ComputeMesh();
+    this->needsNewMesh = true;
 }
 
 void Renderer::ScanCardboardQr() {
@@ -729,6 +749,11 @@ BuildCylindricalMesh(int n_slices, float minTheta, float maxTheta, float uvLeft,
 }
 
 void Renderer::ComputeMesh() {
+    LOG_DEBUG("Destroying buffer objects...");
+    for (int eye = 0; eye < 2; ++eye) {
+        eyeMeshes[eye].DestroyBufferObjects();
+    }
+    LOG_DEBUG("Destroyed buffer objects...");
     for (int eye = 0; eye < 2; ++eye) {
         float uvLeft, uvTop, uvRight, uvBottom;
         switch (inputVideoLayout) {
@@ -764,17 +789,11 @@ void Renderer::ComputeMesh() {
                 const float xScale = videoAspect > 1.0f ? 1.0f : (1.0f / videoAspect);
                 const float yScale = videoAspect > 1.0f ? (1.0f / videoAspect) : 1.0f;
 
-                std::unique_ptr<GLfloat[]> pos{new GLfloat[12]{
-                        -xScale, +yScale, PLAIN_FOV_Z,
-                        +xScale, +yScale, PLAIN_FOV_Z,
-                        +xScale, -yScale, PLAIN_FOV_Z,
-                        -xScale, -yScale, PLAIN_FOV_Z
-                }};
-                std::unique_ptr<GLfloat[]> uv{new GLfloat[8]{
-                        uvLeft, uvTop,
-                        uvRight, uvTop,
-                        uvRight, uvBottom,
-                        uvLeft, uvBottom
+                std::unique_ptr<GLfloat[]> data{new GLfloat[20]{
+                        -xScale, +yScale, PLAIN_FOV_Z, uvLeft, uvTop,
+                        +xScale, +yScale, PLAIN_FOV_Z, uvRight, uvTop,
+                        +xScale, -yScale, PLAIN_FOV_Z, uvRight, uvBottom,
+                        -xScale, -yScale, PLAIN_FOV_Z, uvLeft, uvBottom,
                 }};
                 std::unique_ptr<GLushort[]> indices{new GLushort[6]{
                         0, 2, 1,
@@ -784,9 +803,9 @@ void Renderer::ComputeMesh() {
                 eyeMeshes[eye] =
                         TexturedMesh(
                                 GL_TRIANGLES,
+                                20,
                                 6,
-                                std::move(pos),
-                                std::move(uv),
+                                std::move(data),
                                 std::move(indices)
                         );
 
@@ -814,25 +833,15 @@ void Renderer::ComputeMesh() {
                 break;
 
             default:
-                std::unique_ptr<GLfloat[]> pos{new GLfloat[]{
-                        -1.0, -1.0, -1.0,
-                        +1.0, -1.0, -1.0,
-                        +1.0, +1.0, -1.0,
-                        -1.0, +1.0, -1.0,
-                        -1.0, -1.0, +1.0,
-                        +1.0, -1.0, +1.0,
-                        +1.0, +1.0, +1.0,
-                        -1.0, +1.0, +1.0
-                }};
-                std::unique_ptr<GLfloat[]> uv{new GLfloat[]{
-                        0.0f, 0.0f,
-                        1.0f, 0.0f,
-                        1.0f, 1.0f,
-                        0.0f, 1.0f,
-                        0.0f, 0.0f,
-                        1.0f, 0.0f,
-                        1.0f, 1.0f,
-                        0.0f, 1.0f,
+                std::unique_ptr<GLfloat[]> data{new GLfloat[]{
+                        -1.0, -1.0, -1.0, 0.0f, 0.0f,
+                        +1.0, -1.0, -1.0, 1.0f, 0.0f,
+                        +1.0, +1.0, -1.0, 1.0f, 1.0f,
+                        -1.0, +1.0, -1.0, 0.0f, 1.0f,
+                        -1.0, -1.0, +1.0, 0.0f, 0.0f,
+                        +1.0, -1.0, +1.0, 1.0f, 0.0f,
+                        +1.0, +1.0, +1.0, 1.0f, 1.0f,
+                        -1.0, +1.0, +1.0, 0.0f, 1.0f,
                 }};
                 std::unique_ptr<GLushort[]> indices{new GLushort[]{
                         0, 5, 4, 0, 1, 5,
@@ -846,13 +855,18 @@ void Renderer::ComputeMesh() {
                 eyeMeshes[eye] =
                         TexturedMesh(
                                 GL_TRIANGLES,
+                                40,
                                 36,
-                                std::move(pos),
-                                std::move(uv),
+                                std::move(data),
                                 std::move(indices)
                         );
                 break;
         }
+
+        LOG_DEBUG("Uploading buffer objects");
+        eyeMeshes[eye].UploadBufferObjects();
+        CHECK_GL_ERROR("Mesh init");
+        LOG_DEBUG("Uploaded");
     }
 }
 
