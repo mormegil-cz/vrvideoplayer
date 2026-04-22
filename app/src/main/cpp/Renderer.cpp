@@ -921,6 +921,8 @@ void Renderer::ExecuteButtonAction(const ButtonAction action, JNIEnv *env) {
         case ButtonAction::RECENTER_YAW:
             // TODO: Delay recenter?
             CardboardHeadTracker_recenter(cardboardHeadTracker.get());
+            // and hide the UI after the recenter
+            vrGuiShown = false;
             break;
 
         case ButtonAction::RECENTER_2D:

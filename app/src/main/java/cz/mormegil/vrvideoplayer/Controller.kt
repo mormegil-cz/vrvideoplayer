@@ -46,6 +46,14 @@ class Controller(
             buttonRewind -> {
                 videoTexturePlayer.rewind()
             }
+
+            buttonPause -> {
+                videoTexturePlayer.pause()
+            }
+
+            buttonPlay -> {
+                videoTexturePlayer.play()
+            }
         }
     }
 }
