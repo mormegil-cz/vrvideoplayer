@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="App">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-04-22T09:14:24.928859329Z">
+        <DropdownSelection timestamp="2026-08-01T12:30:15.389007498Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/home/petr/.android/avd/Sony_Xperia_XZ1_Compact_API_28.avd" />
+              <DeviceId pluginId="Wireless" identifier="serviceName=adb-R3CT20BW5PE-qnMf1k" />
             </handle>
           </Target>
         </DropdownSelection>
