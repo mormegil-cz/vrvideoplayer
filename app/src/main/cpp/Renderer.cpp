@@ -476,7 +476,7 @@ bool Renderer::UpdateDeviceParams() {
                                                      glm::value_ptr(cardboardEyeMatrices[0]));
         CardboardLensDistortion_getEyeFromHeadMatrix(cardboardLensDistortion.get(), kRight,
                                                      glm::value_ptr(cardboardEyeMatrices[1]));
-        CardboardLensDistortion_getProjectionMatrix(cardboardLensDistortion.get(), kRight, kzNear,
+        CardboardLensDistortion_getProjectionMatrix(cardboardLensDistortion.get(), kLeft, kzNear,
                                                     kzFar,
                                                     glm::value_ptr(cardboardProjectionMatrices[0]));
         CardboardLensDistortion_getProjectionMatrix(cardboardLensDistortion.get(), kRight, kzNear,
