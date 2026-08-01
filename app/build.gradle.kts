@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "cz.mormegil.vrvideoplayer"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -39,7 +39,7 @@ android {
     buildFeatures {
         viewBinding = true
     }
-    ndkVersion = "30.0.14904198"
+    ndkVersion = "29.0.14206865"
 }
 
 java {
@@ -53,7 +53,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-    implementation("com.google.cardboard.sdk:sdk:1.21.0@aar")
+    implementation("com.google.cardboard.sdk:sdk:1.34.0@aar")
 
     // Cardboard SDK dependencies:
     // Android Mobile Vision
